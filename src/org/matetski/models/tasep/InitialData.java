@@ -19,8 +19,4 @@ public enum InitialData {
     public String toString() {
         return name;
     }
-
-    public static InitialData getDefaultValue() {
-        return FLAT;
-    }
 }

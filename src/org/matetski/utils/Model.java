@@ -1,6 +1,8 @@
 package org.matetski.utils;
 
 import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import org.matetski.gui.Controller;
 
 import java.awt.*;
 import java.util.HashMap;
@@ -27,10 +29,10 @@ public abstract class Model {
 	/**
 	 * Paints the output of the algorithm.
 	 *
-	 * @param canvas
+	 * @param graphicsContext
 	 *            The canvas on which the output should be drawn.
 	 */
-	public abstract void paint(Canvas canvas);
+	public abstract void paint(GraphicsContext graphicsContext);
 
 	/**
 	 * Performs an iteration of the algorithm, if the latter is not stopped.

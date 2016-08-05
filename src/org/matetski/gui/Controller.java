@@ -1,7 +1,5 @@
 package org.matetski.gui;
 
-import org.matetski.utils.Model;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,16 +8,8 @@ import java.util.List;
  * Created by k.matetski on 7/17/16.
  */
 public abstract class Controller {
-    private final Model model;
+
     private List<Controller> subcontrollers;
-
-    public Controller(Model model) {
-        this.model = model;
-    }
-
-    public HashMap<String, Object> getDefaultParameters() {
-        return model.getDefaultParameters();
-    }
 
     protected abstract HashMap<String, Object> createParameters();
 
@@ -34,10 +24,15 @@ public abstract class Controller {
         return parameters;
     }
 
-    public abstract void setParameters(HashMap<String, Object> parameters);
+    protected abstract void setMyParameters(HashMap<String, Object> parameters);
 
-    public void updateParameters(HashMap<String, Object> parameters) {
-        model.setParameters(parameters);
+    public final void setParameters(HashMap<String, Object> parameters) {
+        setMyParameters(parameters);
+        if (subcontrollers != null) {
+            for (Controller controller : subcontrollers) {
+                controller.setMyParameters(parameters);
+            }
+        }
     }
 
     public void addSubcontroller(Controller controller) {

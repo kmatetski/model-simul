@@ -3,6 +3,7 @@ package org.matetski.models.dummy;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import org.matetski.gui.Controller;
 import org.matetski.utils.Model;
 import java.util.HashMap;
 
@@ -31,8 +32,7 @@ public class DummyModel extends Model {
 	}
 
 	@Override
-	public void paint(Canvas canvas) {
-        GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
+	public void paint(GraphicsContext graphicsContext) {
 		switch (colorNumber) {
 		case 0:
             graphicsContext.setFill(Color.GREEN);
@@ -43,7 +43,7 @@ public class DummyModel extends Model {
 		case 2:
             graphicsContext.setFill(Color.BLUE);
 		}
-        graphicsContext.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        graphicsContext.fillRect(0, 0, graphicsContext.getCanvas().getWidth(), graphicsContext.getCanvas().getHeight());
 	}
 
 	@Override

@@ -7,10 +7,6 @@ public enum Angle {
     ZERO("0%"),
     FOURTY_FIVE("45%");
 
-    public static Angle getDefaultValue() {
-        return ZERO;
-    }
-
     private final String name;
 
     Angle(String name) {

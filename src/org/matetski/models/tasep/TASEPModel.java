@@ -1,32 +1,43 @@
 package org.matetski.models.tasep;
 
-import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 import org.matetski.utils.Model;
+import org.matetski.utils.ModelUtils;
 
 import java.awt.*;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * An algorithm simulating the TASEP.
- * 
- * @author K.Matetski
  *
+ * @author K.Matetski
  */
 
 public class TASEPModel extends Model {
 
-	private final static String CONTROL_GUI_FILE_NAME = "./tasep.fxml";
-	private final static String MODEL_NAME = "TASEP";
+    private final static String CONTROL_GUI_FILE_NAME = "./tasep.fxml";
+    private final static String MODEL_NAME = "TASEP";
 
-	@Override
-	public String getControlGUIFileName() {
-		return CONTROL_GUI_FILE_NAME;
-	}
+    private final static double DEFAULT_JUMP_RATE = 0.5;
+    private final static double DEFAULT_PARTICLE_SIZE = 2;
+    private final static Angle DEFAULT_ANGLE = Angle.ZERO;
+    private final static InitialData DEFAULT_INITIAL_DATA = InitialData.FLAT;
 
-	@Override
-	public String getModelName() {
-		return MODEL_NAME;
-	}
+    private final static int BOTTOM_MARGIN_TASEP = 10;
+    private final static int BOTTOM_MARGIN_HEIGHTS = BOTTOM_MARGIN_TASEP * 2;
+    private final static double AXIS_LINE_WIDTH = 0.5;
+    private final static double STANDARD_LINE_WIDTH = 1;
+
+    @Override
+    public String getControlGUIFileName() {
+        return CONTROL_GUI_FILE_NAME;
+    }
+
+    @Override
+    public String getModelName() {
+        return MODEL_NAME;
+    }
 
     @Override
     public HashMap<String, Object> getParameters() {
@@ -35,333 +46,457 @@ public class TASEPModel extends Model {
 
     @Override
     public void setParameters(HashMap<String, Object> parameters) {
+        initialData = (InitialData) parameters.get(TASEPUtils.INITIAL_DATA_PARAMETER);
+        angle = (Angle) parameters.get(TASEPUtils.ANGLE_PARAMETER);
+        jumpRate = (Double) parameters.get(TASEPUtils.JUMP_RATE_PARAMETER);
+        particleSize = (Double) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER);
+        Dimension size = (Dimension) parameters.get(ModelUtils.SIZE_PARAMETER);
 
+        initializeParticles((int) (size.getWidth() / particleSize));
     }
 
     @Override
     public HashMap<String, Object> getDefaultParameters() {
-        return null;
+        HashMap<String, Object> parameters = new HashMap<>();
+        parameters.put(TASEPUtils.JUMP_RATE_PARAMETER, Double.valueOf(DEFAULT_JUMP_RATE));
+        parameters.put(TASEPUtils.PARTICLE_SIZE_PARAMETER, Double.valueOf(DEFAULT_PARTICLE_SIZE));
+        parameters.put(TASEPUtils.ANGLE_PARAMETER, DEFAULT_ANGLE);
+        parameters.put(TASEPUtils.INITIAL_DATA_PARAMETER, DEFAULT_INITIAL_DATA);
+        return parameters;
     }
 
-    private Dimension size;
     private double jumpRate;
-    private int[] particles; // Position of the particles
-    private boolean[] canJump; // Put true if particle can jump
-	private int freePart; // The number of particles which can jump (including the right most one of course)
-	private InitialData initialData; // Type of initial condition 0=step, 1=half flat, 2=flat
-    private Angle angle; // Type of visualization 0=straight, 1=45 degree rotation
+    private int[] particles;
+    private boolean[] particlesCanJump;
+    private int numberOfFreeParticles;
+    private InitialData initialData;
+    private Angle angle;
     private double particleSize;
+    private double modelTime = 0;
 
-	@Override
-	public void initialize() {
-		this.size = size;
-        jumpRate = 1.0;
-        particles = new int[20002];
-	    canJump = new boolean[20002];
-        particleSize=1;
-	      
-	    //InitFrames();
-	    Inizializza();
+    @Override
+    public void initialize() {
+    }
 
-	}
-	
-/**	public void InitFrames() {
-		   getContentPane().setLayout(null);
-		   getContentPane().setBackground(Color.black); 
-		   // Set the animation region
-		   AnimationRegion = new JPanel();
-		   AnimationRegion.setLayout(new GridLayout(1,0));      
-		   AnimationRegion.setBackground(Color.lightGray);
-		   TASEPDisplay = new Display1();
-		   TASEPDisplay.setBorder( BorderFactory.createLineBorder(Color.gray,1));
-		   AnimationRegion.add(TASEPDisplay);
-		   AnimationRegion.setBounds(200,0,getSize().width-200,getSize().height);
-		   getContentPane().add(AnimationRegion);
-		   
-		   // Set the control region
-		   ControlRegion = new JPanel();
-		   ControlRegion.setLayout(null);
-		   ControlRegion.setBounds(0,0,200,getSize().height);
-		   getContentPane().add(ControlRegion);  
-		     
-		   int NButton,HButton; // To organize the button positions, starts from 0
-		   // Set the Start/Stop button, part of control region
-		   StartStopButton = new JButton("Start");
-		   NButton=0; HButton=1;
-		   freeze=true;
-		   StartStopButton.addActionListener(this);
-		   StartStopButton.setBounds(5,5+NButton*40,190,35*HButton);
-		   ControlRegion.add(StartStopButton);
+    private void initializeParticles(int size) {
+        switch (initialData) {
+            case FLAT:
+                int particlesNumber = size / 2;
+                particles = new int[particlesNumber];
+                for (int k = 0; k < particles.length; k++) {
+                    particles[k] = particlesNumber - 2 * k - 1;
+                }
+                break;
+            case HALF_FLAT:
+                particles = new int[size / 4];
+                for (int k = 0; k < particles.length; k++) {
+                    particles[k] = -2 * k - 1;
+                }
+                break;
+            case STEP:
+                particles = new int[size / 2];
+                for (int k = 0; k < particles.length; k++) {
+                    particles[k] = -k;
+                }
+                break;
+        }
+        initializeJumps();
+    }
 
-		   ICMenu = new JComboBox<String>();
-		   NButton=1; HButton=1;
-		   ICMenu.setBackground(Color.white);
-		   ICMenu.addItem("Step IC");
-		   ICMenu.addItem("Half Flat IC");
-		   ICMenu.addItem("Flat IC");
-		   ICMenu.addItemListener(this);
-		   ICMenu.setBounds(5,5+NButton*40,190,35*HButton);
-		   ControlRegion.add(ICMenu);
-		   IC=0; // Starts with step IC    
+    private void initializeJumps() {
+        particlesCanJump = new boolean[particles.length];
+        if (particlesCanJump.length > 1) {
+            particlesCanJump[0] = true;
+            numberOfFreeParticles = 1;
+        }
+        for (int k = 1; k < particlesCanJump.length; k++) {
+            if (particles[k - 1] - particles[k] > 1) {
+                particlesCanJump[k] = true;
+                numberOfFreeParticles++;
+            } else {
+                particlesCanJump[k] = false;
+            }
+        }
+    }
 
-		   VisMenu = new JComboBox<String>();
-		   NButton=2; HButton=1;
-		   VisMenu.setBackground(Color.white);
-		   VisMenu.addItem("Angle 45");
-		   VisMenu.addItem("Angle 0");
-		   VisMenu.addItemListener(this);
-		   VisMenu.setBounds(5,5+NButton*40,190,35*HButton);
-		   ControlRegion.add(VisMenu);
-		   Vis=1; // Starts with 45 degrees    
+    @Override
+    public void update() {
+        double Dt;
+        double TotT = 0;
 
-		   JPanel PointsPanel = new JPanel();
-		   PointsPanel.setLayout(new GridLayout(3,2));
-		   NButton=3; HButton=3;
-		   PointsPanel.setBounds(5,5+NButton*40,190,35*HButton);
-		   ControlRegion.add(PointsPanel);
-		   // Set the Labels and the TextFields
-		   PointsLabel = new JLabel("Nb Particles");
-		   PointsPanel.add(PointsLabel);
-		   PointsText = new JTextField(""+N);
-		   PointsPanel.add(PointsText);
-		   
-		   DiameterLabel = new JLabel("Particles Radius");
-		   PointsPanel.add(DiameterLabel);
-		   DiameterText = new JTextField(""+Diameter);
-		   PointsPanel.add(DiameterText);
-		   
-		   AlphaLabel = new JLabel("Jump Rate 1");
-		   PointsPanel.add(AlphaLabel);
-		   AlphaText = new JTextField(""+alpha);
-		   PointsPanel.add(AlphaText);
+        while (TotT <= 1) {
+            // Determine the time of next jump
+            Dt = -Math.log(Math.random()) / (jumpRate + (numberOfFreeParticles - 1));
+            // Determine if it is the first particle jumping or not
+            if (particles.length > 1 && Math.random() <= jumpRate / (jumpRate + (numberOfFreeParticles - 1))) {
+                particles[0]++;
+                if (particles[0] - particles[1] == 2) {
+                    particlesCanJump[1] = true;
+                    numberOfFreeParticles++;
+                }
+            } else { // choose randomly one of the other particle that can jump
+                int Nmove = 1;
+                while (Nmove == 1 && particles.length > 0) {
+                    int conta = (int) (Math.random() * (particles.length - 1)) + 2;
+                    if (conta < particlesCanJump.length && particlesCanJump[conta]) {
+                        Nmove = conta;
+                    }
+                }
+                particles[Nmove]++;
+                if (particles[Nmove - 1] - particles[Nmove] == 1) {
+                    particlesCanJump[Nmove] = false;
+                    numberOfFreeParticles--;
+                }
+                if (Nmove < particles.length - 1 && particles[Nmove] - particles[Nmove + 1] == 2) {
+                    particlesCanJump[Nmove + 1] = true;
+                    numberOfFreeParticles++;
+                }
+            }
+            modelTime += Dt;
+            TotT += Dt;
+        }
+    }
 
-		   JPanel FixedPanel = new JPanel();
-		   FixedPanel.setLayout(new BorderLayout());
-		   NButton=6; HButton=1;
-		   FixedPanel.setBounds(5,5+NButton*40,190,35*HButton);
-		   ControlRegion.add(FixedPanel);
+    @Override
+    public void paint(GraphicsContext graphicsContext) {
+        double canvasWidth = graphicsContext.getCanvas().getWidth();
+        double canvasHeight = graphicsContext.getCanvas().getHeight();
 
-		   pLabel = new JLabel("Jump Rate 2,... set to 1");
-		   FixedPanel.add(pLabel);
-		   
-		   // Set the SpeedPanel, composed of a Slider and a Label
-		   JPanel SpeedPanel = new JPanel();
-		   SpeedPanel.setLayout(new BorderLayout());
-		   NButton=7; HButton=2;
-		   SpeedPanel.setBounds(5,5+NButton*40,190,35*HButton);
-		   ControlRegion.add(SpeedPanel);
-		   // Set the Slider  
-		   SpeedSlider = new JSlider(0,100,Speed);
-		   SpeedSlider.addChangeListener(this);
-		   SpeedSlider.setMajorTickSpacing(50);
-		   SpeedSlider.setMinorTickSpacing(5);
-		   SpeedSlider.setPaintTicks(true);
-		   SpeedSlider.setPaintLabels(true);
-		   SpeedPanel.add(SpeedSlider, BorderLayout.CENTER);
-		   // Set the Label
-		   SpeedLabel = new JLabel("Speed = "+SpeedSlider.getValue());
-		   SpeedPanel.add(SpeedLabel, BorderLayout.WEST);
-		   
-//		 Inizialize set parameters
-		   
-		   NButton=9; HButton=1;
-		   SetParameters = new JButton("Set the parameters");
-		   SetParameters.addActionListener(this);
-		   SetParameters.setBounds(5,5+NButton*40,190,35*HButton);
-		   ControlRegion.add(SetParameters);  
-		   
-		   NButton=10; HButton=1;
-		   Reset = new JButton("Reset");
-		   Reset.addActionListener(this);
-		   Reset.setBounds(5,5+NButton*40,190,35*HButton);
-		   ControlRegion.add(Reset);  
+        graphicsContext.clearRect(0, 0, canvasWidth, canvasHeight);
 
-		 } // End InitFrames
-**/
-	
-	private void Inizializza() {
-	  	/**if (IC==2) {
-		    for(int k=1; k<=size.getWidth(); k++) {
-		      x[k]=-2*k+1+(int)size.getWidth();
-		   	}
-		}
-	  	if (IC==1) { 
-	  		x[1]=-1;
-	  		for(int k=2;k<=size.getWidth();k++){
-	  			x[k]=-2*k+1; // This is for half-flat
-//          x[k]=x[k-1]-1; while (Math.random()<0.5) {x[k]--;} // This is for half-stationary
-	  		}
-	  	}
-	  	if (IC==0) { 
-	  	    for(int k=1;k<=size.getWidth();k++){
-	  	      x[k]=-k;
-	  	   	}
-	  	}
-	   // Check which particles can jump
-	    canJump[1]=true;
-	    FreePart=1;
-	    for(int k=2;k<=size.getWidth();k++){
-	    	if (x[k-1]-x[k]>=2) {
-                canJump[k]=true; FreePart++;} else {
-                canJump[k]=false;}
-	    }**/
-	}
+        graphicsContext.setStroke(Color.BLACK);
+        graphicsContext.setLineWidth(AXIS_LINE_WIDTH);
+        graphicsContext.strokeLine(canvasWidth / 2, 0, canvasWidth / 2, canvasHeight);
+        graphicsContext.strokeLine(0, canvasHeight - (int) particleSize - BOTTOM_MARGIN_HEIGHTS,
+                canvasWidth, canvasHeight - (int) particleSize - BOTTOM_MARGIN_HEIGHTS);
 
-	@Override
-	public void update() {
+        drawTASEP(graphicsContext);
+        drawHeights(graphicsContext);
+    }
 
-	}
+    private void drawTASEP(GraphicsContext graphicsContext) {
+        graphicsContext.setFill(Color.BLUE);
+        for (int k = 0; k < particles.length; k++) {
+            graphicsContext.fillOval((int) (graphicsContext.getCanvas().getWidth() / 2 + particleSize * particles[k]),
+                    graphicsContext.getCanvas().getHeight() - (int) particleSize - BOTTOM_MARGIN_TASEP,
+                    (int) particleSize, (int) particleSize);
+        }
+    }
 
-	@Override
-	public void paint(Canvas canvas) {
+    private void drawHeights(GraphicsContext graphicsContext) {
+        switch (angle) {
+            case ZERO:
+                drawZeroHeights(graphicsContext);
+                break;
+            case FOURTY_FIVE:
+                drawAngleHeights(graphicsContext);
+                break;
+        }
+    }
 
-	}
+    private void drawZeroHeights(GraphicsContext graphicsContext) {
+        double width = graphicsContext.getCanvas().getWidth();
+        double height = graphicsContext.getCanvas().getHeight();
+        int Delta2, PosFirst;
+        double Dm;
+        double alphaBis;
 
-/**	class Display1 extends JPanel {
-		private static final long serialVersionUID = -6949357091749745233L;
-		Display1() {
-	        setBackground(Color.lightGray);
-	     }
-	  public void paintComponent(Graphics g){
-	    int width=getSize().width;
-	    int height=getSize().height;
-	    super.paintComponent(g);
-	    int Delta2;
-	    double Dm;
-	    double alphaBis;
-	    
-	    double shift=1.0; // 1=standard
-	    
-	    if (alpha<1) {alphaBis=alpha;} else {alphaBis=1;}
-	    
-	    Delta2=(int)(Diameter*t/2);
-		// Draw the TASEP particles position in the (k,x_k+k) plot
-	    g.setColor(Color.white);
-	    g.drawString("Continuous time = "+(int)(t),width-300,50);
-	    g.setColor(Color.blue);
-	    for(int k=1;k<N;k++){
-	      g.fillOval((int)(shift*width/2+Diameter*x[k]),height-(int)(Diameter)-10,(int)(Diameter)+1,(int)(Diameter)+1);
-	    }
-	    if (Vis==1) {
-   	  if (IC==1) {
-   		g.setColor(Color.black);
-        	g.drawLine(width/2,height-(int)(2*Diameter)-20,width/2+height,height-(int)(2*Diameter)-20-height);
-   	  	if (alpha>0.5) {
-             // draw the flat part
-     		    g.setColor(Color.black);
-   		    g.drawLine(0,height-(int)(2*Diameter)-20-Delta2,width/2,height-(int)(2*Diameter)-20-Delta2);
-   		 // Draw the parabola
-   		    g.setColor(Color.red);
-       	    for(int k=1+(int)((1-alphaBis)*(1-alphaBis)*t);k<t/4;k++){
-   		      g.drawLine(width/2+(int)(Diameter*(t-2*Math.sqrt(t*k))),height+(int)(-2*Diameter-20-Diameter*(2*k+(t-2*Math.sqrt(t*k)))),width/2+(int)(Diameter*(t-2*Math.sqrt(t*(k-1)))),height+(int)(-2*Diameter-20-Diameter*(2*k-2+(t-2*Math.sqrt(t*(k-1))))));
-   		    }
-          	 // Draw the shock region
-       	    g.setColor(Color.cyan);
-       	    if (alpha<1) {
-               g.drawLine(width/2+(int)(Diameter*(2*alpha-1)*t),height+(int)(-2*Diameter-20-Diameter*(1-2*alpha+2*alpha*alpha)*t),width/2+(int)(Diameter*(alpha*t)),height+(int)(-2*Diameter-20-Diameter*(alpha*t)));
-       	    }        	  
-   		} else {
-             // draw the flat part
-     		  g.setColor(Color.red);
-   		  g.drawLine(0,height-(int)(2*Diameter)-20-Delta2,width/2-(int)(Diameter*(0.5-alpha)*t),height-(int)(2*Diameter)-20-Delta2);
-         	 // Draw the shock region
-       	  g.setColor(Color.cyan);
-             g.drawLine(width/2+(int)(Diameter*((alpha-0.5))*t),height-(int)(2*Diameter)-20-Delta2,width/2+(int)(Diameter*(alpha*t)),height+(int)(-2*Diameter-20-Diameter*(alpha*t)));
-   	  	}
-	      }
-   	  if (IC==2) {
-  		    g.setColor(Color.red);
-  		    g.drawLine(0,height-(int)(2*Diameter)-20-Delta2,width,height-(int)(2*Diameter)-20-Delta2);
-	      }
-   	  if (IC==0){
-   	    g.setColor(Color.black);
-   	    g.drawLine(width/2,height-(int)(2*Diameter)-20,width/2-height,height-(int)(2*Diameter)-20-height);
-   	    g.drawLine(width/2,height-(int)(2*Diameter)-20,width/2+height,height-(int)(2*Diameter)-20-height);
-//Draw the parabola
-   	    g.setColor(Color.red);
-   	    for(int k=1+(int)((1-alphaBis)*(1-alphaBis)*t);k<t;k++){
-		      g.drawLine(width/2+(int)(Diameter*(t-2*Math.sqrt(t*k))),height+(int)(-2*Diameter-20-Diameter*(2*k+(t-2*Math.sqrt(t*k)))),width/2+(int)(Diameter*(t-2*Math.sqrt(t*(k-1)))),height+(int)(-2*Diameter-20-Diameter*(2*k-2+(t-2*Math.sqrt(t*(k-1))))));
-		    }
-//Draw the shock region
-   	    g.setColor(Color.cyan);
-   	    if (alpha<1) {
-           g.drawLine(width/2+(int)(Diameter*(2*alpha-1)*t),height+(int)(-2*Diameter-20-Diameter*(1-2*alpha+2*alpha*alpha)*t),width/2+(int)(Diameter*(alpha*t)),height+(int)(-2*Diameter-20-Diameter*(alpha*t)));
-   	    }
+        double shift = 1.0; // 1=standard
+
+        alphaBis = jumpRate;
+
+        Delta2 = (int) (particleSize * modelTime / 2);
+        PosFirst = (int) (particleSize * modelTime * jumpRate);
+
+        // Draw the TASEP particles position in the (k,x_k+k) plot
+        graphicsContext.setStroke(Color.WHITE);
+        graphicsContext.strokeText("Continuous time = " + (int) (modelTime), width - 300, 50);
+        graphicsContext.setStroke(Color.BLUE);
+        for (int k = 1; k < particles.length; k++) {
+            graphicsContext.fillOval((int) (shift * width / 2 + particleSize * particles[k]), height - (int) (particleSize) - 10, (int) (particleSize) + 1, (int) (particleSize) + 1);
+        }
+        if (angle == Angle.ZERO) {
+            if (initialData == InitialData.HALF_FLAT) {
+                graphicsContext.setStroke(Color.BLACK);
+                graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 + height, height - (int) (2 * particleSize) - 20 - height);
+                if (jumpRate > 0.5) {
+                    // draw the flat part
+                    graphicsContext.setStroke(Color.BLACK);
+                    graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - Delta2, width / 2, height - (int) (2 * particleSize) - 20 - Delta2);
+                    // Draw the parabola
+                    graphicsContext.setStroke(Color.RED);
+                    for (int k = 1 + (int) ((1 - alphaBis) * (1 - alphaBis) * modelTime); k < modelTime / 4; k++) {
+                        graphicsContext.strokeLine(width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * k))), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + (modelTime - 2 * Math.sqrt(modelTime * k)))), width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * (k - 1)))), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k - 2 + (modelTime - 2 * Math.sqrt(modelTime * (k - 1))))));
+                    }
+                    // Draw the shock region
+                    graphicsContext.setStroke(Color.CYAN);
+                    if (jumpRate < 1) {
+                        graphicsContext.strokeLine(width / 2 + (int) (particleSize * (2 * jumpRate - 1) * modelTime), height + (int) (-2 * particleSize - 20 - particleSize * (1 - 2 * jumpRate + 2 * jumpRate * jumpRate) * modelTime), width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
+                    }
+                } else {
+                    // draw the flat part
+                    graphicsContext.setStroke(Color.RED);
+                    graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - Delta2, width / 2 - (int) (particleSize * (0.5 - jumpRate) * modelTime), height - (int) (2 * particleSize) - 20 - Delta2);
+                    // Draw the shock region
+                    graphicsContext.setStroke(Color.CYAN);
+                    graphicsContext.strokeLine(width / 2 + (int) (particleSize * ((jumpRate - 0.5)) * modelTime), height - (int) (2 * particleSize) - 20 - Delta2, width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
+                }
+            }
+            if (initialData == InitialData.FLAT) {
+                graphicsContext.setStroke(Color.RED);
+                graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - Delta2, width, height - (int) (2 * particleSize) - 20 - Delta2);
+            }
+            if (initialData == InitialData.STEP) {
+                graphicsContext.setStroke(Color.BLACK);
+                graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 - height, height - (int) (2 * particleSize) - 20 - height);
+                graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 + height, height - (int) (2 * particleSize) - 20 - height);
+// Draw the parabola
+                graphicsContext.setStroke(Color.RED);
+                for (int k = 1 + (int) ((1 - alphaBis) * (1 - alphaBis) * modelTime); k < modelTime; k++) {
+                    graphicsContext.strokeLine(width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * k))), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + (modelTime - 2 * Math.sqrt(modelTime * k)))), width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * (k - 1)))), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k - 2 + (modelTime - 2 * Math.sqrt(modelTime * (k - 1))))));
+                }
+// Draw the shock region
+                graphicsContext.setStroke(Color.CYAN);
+                if (jumpRate < 1) {
+                    graphicsContext.strokeLine(width / 2 + (int) (particleSize * (2 * jumpRate - 1) * modelTime), height + (int) (-2 * particleSize - 20 - particleSize * (1 - 2 * jumpRate + 2 * jumpRate * jumpRate) * modelTime), width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
+                }
 //
-   	  }
-   	  g.setColor(Color.blue);
-   	  if (IC==2) {Dm=Diameter*N*1.0;} else {Dm=0;}
-         g.drawLine(width/2+(int)(Diameter*x[1]+Diameter),height+(int)(-2*Diameter-20-Diameter*(2*1+x[1])+Diameter+Dm),width/2+(int)(Diameter*x[1]+Diameter)+height,height+(int)(-2*Diameter-20-Diameter*(2*1+x[1])+Diameter+Dm)-height);
-         g.drawLine(width/2+(int)(Diameter*x[1]),height+(int)(-2*Diameter-20-Diameter*(2*1+x[1])+Dm),width/2+(int)(Diameter*x[1]+Diameter),height+(int)(-2*Diameter-20-Diameter*(2*1+x[1])+Diameter+Dm));
-	      for(int k=2;k<N;k++){
-		      g.drawLine(width/2+(int)(Diameter*x[k]),height+(int)(-2*Diameter-20-Diameter*(2*k+x[k])+Dm),width/2+(int)(Diameter*x[k]+Diameter),height+(int)(-2*Diameter-20-Diameter*(2*k+x[k])+Diameter+Dm));
-		      g.drawLine(width/2+(int)(Diameter*x[k]+Diameter),height+(int)(-2*Diameter-20-Diameter*(2*k+x[k])+Diameter+Dm),width/2+(int)(Diameter*x[k-1]),height+(int)(-2*Diameter-20-Diameter*(2*k-2+x[k-1])+Dm));
-		    }
-	    }
-	    if (Vis==0) {
-		  if (IC==1) {
-		  	if (alpha>0.5) {
-           // draw the flat part
-  		    g.setColor(Color.black);
-		    g.drawLine((int)(shift*width/2+Diameter*t/4),height-(int)(2*Diameter+Diameter*t/4)-20,(int)(shift*width/2)-height,height-(int)(2*Diameter)-20-height-Delta2);
-  		 // Draw the parabola
-	  	       g.setColor(Color.red);
-	  	       for(int k=1+(int)((1-alphaBis)*(1-alphaBis)*t);k<t/4;k++){
-		         g.drawLine((int)(shift*width/2+Diameter*(t-2*Math.sqrt(t*(k-1))+k-1)),height+(int)(-2*Diameter-20-Diameter*(k-1)),(int)(shift*width/2+Diameter*(t-2*Math.sqrt(t*k)+k)),height+(int)(-2*Diameter-20-Diameter*k));
-			    }
-	           	 // Draw the shock region
-      	    g.setColor(Color.cyan);
-      	    if (alpha<1) {
-		       g.drawLine((int)(shift*width/2+Diameter*t*alpha*alpha),height+(int)(-2*Diameter-20-Diameter*(1-alpha)*(1-alpha)*t),(int)(shift*width/2+Diameter*alpha*t),height+(int)(-2*Diameter-20));
-      	    }        	  
-	  	    }
-		    else {
-	        // draw the flat part
-	   		g.setColor(Color.black);
-			g.drawLine((int)(shift*width/2+Diameter*t*alpha/2),height+(int)(-2*Diameter-20-Diameter*(1-alpha)*t/2),(int)(shift*width/2)-height,height-(int)(2*Diameter)-20-height-Delta2);
-		    g.setColor(Color.cyan);
-		    g.drawLine((int)(shift*width/2+Diameter*t*alpha/2),height+(int)(-2*Diameter-20-Diameter*(1-alpha)*t/2),(int)(shift*width/2+Diameter*alpha*t),height+(int)(-2*Diameter-20));
-//           g.drawLine(width/2+(int)(Diameter*((alpha-0.5))*t),height-(int)(2*Diameter)-20-Delta2,width/2+(int)(Diameter*(alpha*t)),height+(int)(-2*Diameter-20-Diameter*(alpha*t)));
-		    }
-		  }
-		if (IC==0) {
-//Draw the parabola
- 	       g.setColor(Color.red);
- 	       for(int k=1+(int)((1-alphaBis)*(1-alphaBis)*t);k<t;k++){
-	         g.drawLine((int)(shift*width/2+Diameter*(t-2*Math.sqrt(t*(k-1))+k-1)),height+(int)(-2*Diameter-20-Diameter*(k-1)),(int)(shift*width/2+Diameter*(t-2*Math.sqrt(t*k)+k)),height+(int)(-2*Diameter-20-Diameter*k));
-		    }
+            }
+            graphicsContext.setStroke(Color.BLUE);
+            if (initialData == InitialData.FLAT) {
+                Dm = particleSize * particles.length * 1.0;
+            } else {
+                Dm = 0;
+            }
+            graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[1] + particleSize), height + (int) (-2 * particleSize - 20 - particleSize * (2 * 1 + particles[1]) + particleSize + Dm), width / 2 + (int) (particleSize * particles[1] + particleSize) + height, height + (int) (-2 * particleSize - 20 - particleSize * (2 * 1 + particles[1]) + particleSize + Dm) - height);
+            graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[1]), height + (int) (-2 * particleSize - 20 - particleSize * (2 * 1 + particles[1]) + Dm), width / 2 + (int) (particleSize * particles[1] + particleSize), height + (int) (-2 * particleSize - 20 - particleSize * (2 * 1 + particles[1]) + particleSize + Dm));
+            for (int k = 2; k < particles.length; k++) {
+                graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[k]), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + particles[k]) + Dm), width / 2 + (int) (particleSize * particles[k] + particleSize), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + particles[k]) + particleSize + Dm));
+                graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[k] + particleSize), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + particles[k]) + particleSize + Dm), width / 2 + (int) (particleSize * particles[k - 1]), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k - 2 + particles[k - 1]) + Dm));
+            }
+        }
+        if (angle == Angle.FOURTY_FIVE) {
+            if (initialData == InitialData.HALF_FLAT) {
+                if (jumpRate > 0.5) {
+                    // draw the flat part
+                    graphicsContext.setStroke(Color.BLACK);
+                    graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * modelTime / 4), height - (int) (2 * particleSize + particleSize * modelTime / 4) - 20, (int) (shift * width / 2) - height, height - (int) (2 * particleSize) - 20 - height - Delta2);
+                    // Draw the parabola
+                    graphicsContext.setStroke(Color.RED);
+                    for (int k = 1 + (int) ((1 - alphaBis) * (1 - alphaBis) * modelTime); k < modelTime / 4; k++) {
+                        graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * (modelTime - 2 * Math.sqrt(modelTime * (k - 1)) + k - 1)), height + (int) (-2 * particleSize - 20 - particleSize * (k - 1)), (int) (shift * width / 2 + particleSize * (modelTime - 2 * Math.sqrt(modelTime * k) + k)), height + (int) (-2 * particleSize - 20 - particleSize * k));
+                    }
+                    // Draw the shock region
+                    graphicsContext.setStroke(Color.CYAN);
+                    if (jumpRate < 1) {
+                        graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * modelTime * jumpRate * jumpRate), height + (int) (-2 * particleSize - 20 - particleSize * (1 - jumpRate) * (1 - jumpRate) * modelTime), (int) (shift * width / 2 + particleSize * jumpRate * modelTime), height + (int) (-2 * particleSize - 20));
+                    }
+                } else {
+                    // draw the flat part
+                    graphicsContext.setStroke(Color.BLACK);
+                    graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * modelTime * jumpRate / 2), height + (int) (-2 * particleSize - 20 - particleSize * (1 - jumpRate) * modelTime / 2), (int) (shift * width / 2) - height, height - (int) (2 * particleSize) - 20 - height - Delta2);
+                    graphicsContext.setStroke(Color.CYAN);
+                    graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * modelTime * jumpRate / 2), height + (int) (-2 * particleSize - 20 - particleSize * (1 - jumpRate) * modelTime / 2), (int) (shift * width / 2 + particleSize * jumpRate * modelTime), height + (int) (-2 * particleSize - 20));
+//            g.drawLine(width/2+(int)(Diameter*((alpha-0.5))*t),height-(int)(2*Diameter)-20-Delta2,width/2+(int)(Diameter*(alpha*t)),height+(int)(-2*Diameter-20-Diameter*(alpha*t)));
+                }
+            }
+            if (initialData == InitialData.STEP) {
+// Draw the parabola
+                graphicsContext.setStroke(Color.RED);
+                for (int k = 1 + (int) ((1 - alphaBis) * (1 - alphaBis) * modelTime); k < modelTime; k++) {
+                    graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * (modelTime - 2 * Math.sqrt(modelTime * (k - 1)) + k - 1)), height + (int) (-2 * particleSize - 20 - particleSize * (k - 1)), (int) (shift * width / 2 + particleSize * (modelTime - 2 * Math.sqrt(modelTime * k) + k)), height + (int) (-2 * particleSize - 20 - particleSize * k));
+                }
 //Draw the shock region
- 	    g.setColor(Color.cyan);
- 	    if (alpha<1) {
-	          g.drawLine((int)(shift*width/2+Diameter*alpha*alpha*t),height+(int)(-2*Diameter-20-Diameter*(1-alpha)*(1-alpha)*t),(int)(shift*width/2+Diameter*alpha*t),height+(int)(-2*Diameter-20));
- 	    }
+                graphicsContext.setStroke(Color.CYAN);
+                if (jumpRate < 1) {
+                    graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * jumpRate * jumpRate * modelTime), height + (int) (-2 * particleSize - 20 - particleSize * (1 - jumpRate) * (1 - jumpRate) * modelTime), (int) (shift * width / 2 + particleSize * jumpRate * modelTime), height + (int) (-2 * particleSize - 20));
+                }
 //
-		}
-		  if (IC==2) {
-		  	Dm=Diameter*N/2.0;
-		    g.setColor(Color.red);
-		    g.drawLine(width/2-(int)(Dm),height+(int)(-2*Diameter-20-Delta2-Dm),width/2+Delta2,height-(int)(2*Diameter)-20);
-		  }
-		  g.setColor(Color.blue);
-         if (IC==2) {Dm=Diameter*N/2.0;} else {Dm=0;}
-         if (IC==2) {
-           for(int k=N/2+1;k<N;k++){
-	           g.drawLine(width/2+(int)(Diameter*(x[k-1]+k-1)-Dm),height+(int)(-Diameter*(k+1)-20+Dm),width/2+(int)(Diameter*(x[k]+k-1)+Diameter-Dm),height+(int)(-2*Diameter-20-Diameter*k+Diameter+Dm));
-		       g.drawLine(width/2+(int)(Diameter*(x[k]+k)-Dm),height+(int)(-(2+k-1)*Diameter-20+Dm),width/2+(int)(Diameter*(x[k]+k-1)+Diameter-Dm),height+(int)(-2*Diameter-20-Diameter*k+Dm));
-	        }
+            }
+            if (initialData == InitialData.FLAT) {
+                Dm = particleSize * particles.length / 2.0;
+                graphicsContext.setStroke(Color.RED);
+                graphicsContext.strokeLine(width / 2 - (int) (Dm), height + (int) (-2 * particleSize - 20 - Delta2 - Dm), width / 2 + Delta2, height - (int) (2 * particleSize) - 20);
+            }
+            graphicsContext.setStroke(Color.BLUE);
+            if (initialData == InitialData.FLAT) {
+                Dm = particleSize * particles.length / 2.0;
+            } else {
+                Dm = 0;
+            }
+            if (initialData == InitialData.FLAT) {
+                for (int k = particles.length / 2 + 1; k < particles.length; k++) {
+                    graphicsContext.strokeLine(width / 2 + (int) (particleSize * (particles[k - 1] + k - 1) - Dm), height + (int) (-particleSize * (k + 1) - 20 + Dm), width / 2 + (int) (particleSize * (particles[k] + k - 1) + particleSize - Dm), height + (int) (-2 * particleSize - 20 - particleSize * k + particleSize + Dm));
+                    graphicsContext.strokeLine(width / 2 + (int) (particleSize * (particles[k] + k) - Dm), height + (int) (-(2 + k - 1) * particleSize - 20 + Dm), width / 2 + (int) (particleSize * (particles[k] + k - 1) + particleSize - Dm), height + (int) (-2 * particleSize - 20 - particleSize * k + Dm));
+                }
+            }
+            if (initialData != InitialData.FLAT) {
+                graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * particles[1] + particleSize - Dm), height + (int) (-2 * particleSize - 20 + Dm), (int) (shift * width / 2 + particleSize * particles[1] + particleSize - Dm), height + (int) (-2 * particleSize - 20 - particleSize + Dm));
+                for (int k = 2; k < particles.length; k++) {
+                    graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * (particles[k - 1] + k - 2) + particleSize - Dm), height + (int) (-2 * particleSize - 20 - particleSize * (k - 1) + Dm), (int) (shift * width / 2 + particleSize * (particles[k] + k - 1) + particleSize - Dm), height + (int) (-2 * particleSize - 20 - particleSize * k + particleSize + Dm));
+                    graphicsContext.strokeLine((int) (shift * width / 2 + particleSize * (particles[k] + k - 1) + particleSize - Dm), height + (int) (-2 * particleSize - 20 - particleSize * k + particleSize + Dm), (int) (shift * width / 2 + particleSize * (particles[k] + k - 1) + particleSize - Dm), height + (int) (-2 * particleSize - 20 - particleSize * k + Dm));
+                }
+            }
+
+        }
+        graphicsContext.setStroke(Color.BLACK);
+        graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20, width, height - (int) (2 * particleSize) - 20);
+    }
+
+    /**
+     * int globalShift = (int) (particleSize * modelTime / 2);
+     * <p>
+     * switch (initialData) {
+     * case FLAT:
+     * graphicsContext.setStroke(Color.RED);
+     * graphicsContext.setLineWidth(AXIS_LINE_WIDTH);
+     * graphicsContext.strokeLine(0, height - BOTTOM_MARGIN_HEIGHTS - (int) particleSize - globalShift,
+     * width, height - BOTTOM_MARGIN_HEIGHTS - (int) particleSize - globalShift);
+     * break;
+     * case HALF_FLAT:
+     * graphicsContext.setFill(Color.BLACK);
+     * graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20,
+     * width / 2 + height, height - (int) (2 * particleSize) - 20 - height);
+     * if (jumpRate > 0.5) {
+     * // draw the flat part
+     * graphicsContext.setFill(Color.BLACK);
+     * graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - globalShift,
+     * width / 2, height - (int) (2 * particleSize) - 20 - globalShift);
+     * // Draw the parabola
+     * graphicsContext.setFill(Color.RED);
+     * for (int k = 1 + (int) ((1 - jumpRate) * (1 - jumpRate) * modelTime); k < modelTime / 4; k++) {
+     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * k))),
+     * height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + (modelTime - 2 * Math.sqrt(modelTime * k)))),
+     * width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * (k - 1)))),
+     * height + (int) (-2 * particleSize - 20 - particleSize * (2 * k - 2 + (modelTime - 2 * Math.sqrt(modelTime * (k - 1))))));
+     * }
+     * // Draw the shock region
+     * graphicsContext.setFill(Color.CYAN);
+     * if (jumpRate < 1) {
+     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * (2 * jumpRate - 1) * modelTime),
+     * height + (int) (-2 * particleSize - 20 - particleSize * (1 - 2 * jumpRate + 2 * jumpRate * jumpRate) * modelTime),
+     * width / 2 + (int) (particleSize * (jumpRate * modelTime)),
+     * height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
+     * }
+     * } else {
+     * // draw the flat part
+     * graphicsContext.setFill(Color.RED);
+     * graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - globalShift,
+     * width / 2 - (int) (particleSize * (0.5 - jumpRate) * modelTime), height - (int) (2 * particleSize) - 20 - globalShift);
+     * // Draw the shock region
+     * graphicsContext.setFill(Color.CYAN);
+     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * ((jumpRate - 0.5)) * modelTime), height - (int) (2 * particleSize) - 20 - globalShift,
+     * width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
+     * }
+     * break;
+     * case STEP:
+     * graphicsContext.setFill(Color.BLACK);
+     * graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 - height, height - (int) (2 * particleSize) - 20 - height);
+     * graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 + height, height - (int) (2 * particleSize) - 20 - height);
+     * //Draw the parabola
+     * graphicsContext.setFill(Color.RED);
+     * for (int k = 1 + (int) ((1 - jumpRate) * (1 - jumpRate) * modelTime); k < modelTime; k++) {
+     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * k))),
+     * height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + (modelTime - 2 * Math.sqrt(modelTime * k)))),
+     * width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * (k - 1)))),
+     * height + (int) (-2 * particleSize - 20 - particleSize * (2 * k - 2 + (modelTime - 2 * Math.sqrt(modelTime * (k - 1))))));
+     * }
+     * //Draw the shock region
+     * graphicsContext.setFill(Color.CYAN);
+     * if (jumpRate < 1) {
+     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * (2 * jumpRate - 1) * modelTime),
+     * height + (int) (-2 * particleSize - 20 - particleSize * (1 - 2 * jumpRate + 2 * jumpRate * jumpRate) * modelTime),
+     * width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
+     * }
+     * break;
+     * }
+     **/
+    //drawCorners(graphicsContext);
+    private void drawCorners(GraphicsContext graphicsContext) {
+        double width = graphicsContext.getCanvas().getWidth();
+        double height = graphicsContext.getCanvas().getHeight();
+        graphicsContext.setLineWidth(STANDARD_LINE_WIDTH);
+        graphicsContext.setStroke(Color.BLUE);
+
+        for (int particleNumber = 0; particleNumber < particles.length; particleNumber++) {
+            if (particleNumber > 0) {
+                double coordinateX = width / 2 + particleSize * (particles[particleNumber] - 0.5);
+                double coordinateY = height - 2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (particles[particleNumber] + 2 * particleNumber);
+
+                graphicsContext.strokeLine(coordinateX, coordinateY, coordinateX + particleSize, coordinateY + particleSize);
+                graphicsContext.strokeLine(coordinateX + particleSize, coordinateY + particleSize,
+                        width / 2 + particleSize * particles[particleNumber - 1], height - 2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (particles[particleNumber] + 2 * particleNumber));
+            } else {
+            /*graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[1] + particleSize), heightShift - particleSize * (2 * 1 + particles[1]),
+                width / 2 + (int) (particleSize * particles[1] + particleSize) + height, heightShift - particleSize * (2 * 1 + particles[1]) - height);
+        graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[1]), heightShift - particleSize * (2 * 1 + particles[1]),
+                width / 2 + (int) (particleSize * particles[1] + particleSize), heightShift - particleSize * (2 * 1 + particles[1]));
+
+        }*/
+            }
+        }
+    }
+
+    private void drawAngleHeights(GraphicsContext graphicsContext) {
+        /**if (Vis == 1) {
+         if (IC == 1) {
+         g.setColor(Color.black);
+         g.drawLine(width / 2, height - (int) (2 * Diameter) - 20, width / 2 + height, height - (int) (2 * Diameter) - 20 - height);
+         if (alpha > 0.5) {
+         // draw the flat part
+         g.setColor(Color.black);
+         g.drawLine(0, height - (int) (2 * Diameter) - 20 - Delta2, width / 2, height - (int) (2 * Diameter) - 20 - Delta2);
+         // Draw the parabola
+         g.setColor(Color.red);
+         for (int k = 1 + (int) ((1 - alphaBis) * (1 - alphaBis) * t); k < t / 4; k++) {
+         g.drawLine(width / 2 + (int) (Diameter * (t - 2 * Math.sqrt(t * k))), height + (int) (-2 * Diameter - 20 - Diameter * (2 * k + (t - 2 * Math.sqrt(t * k)))), width / 2 + (int) (Diameter * (t - 2 * Math.sqrt(t * (k - 1)))), height + (int) (-2 * Diameter - 20 - Diameter * (2 * k - 2 + (t - 2 * Math.sqrt(t * (k - 1))))));
          }
-         if (IC!=2) {
-           g.drawLine((int)(shift*width/2+Diameter*x[1]+Diameter-Dm),height+(int)(-2*Diameter-20+Dm),(int)(shift*width/2+Diameter*x[1]+Diameter-Dm),height+(int)(-2*Diameter-20-Diameter+Dm));
-           for(int k=2;k<N;k++){
-	           g.drawLine((int)(shift*width/2+Diameter*(x[k-1]+k-2)+Diameter-Dm),height+(int)(-2*Diameter-20-Diameter*(k-1)+Dm),(int)(shift*width/2+Diameter*(x[k]+k-1)+Diameter-Dm),height+(int)(-2*Diameter-20-Diameter*k+Diameter+Dm));
-		       g.drawLine((int)(shift*width/2+Diameter*(x[k]+k-1)+Diameter-Dm),height+(int)(-2*Diameter-20-Diameter*k+Diameter+Dm),(int)(shift*width/2+Diameter*(x[k]+k-1)+Diameter-Dm),height+(int)(-2*Diameter-20-Diameter*k+Dm));
-	        }         
+         // Draw the shock region
+         g.setColor(Color.cyan);
+         if (alpha < 1) {
+         g.drawLine(width / 2 + (int) (Diameter * (2 * alpha - 1) * t), height + (int) (-2 * Diameter - 20 - Diameter * (1 - 2 * alpha + 2 * alpha * alpha) * t), width / 2 + (int) (Diameter * (alpha * t)), height + (int) (-2 * Diameter - 20 - Diameter * (alpha * t)));
          }
-         
-       }
-	    g.setColor(Color.black);
-	    g.drawLine(0,height-(int)(2*Diameter)-20,width,height-(int)(2*Diameter)-20);
-	  }
-	  } // end nested class Display1
-	  **/
+         } else {
+         // draw the flat part
+         g.setColor(Color.red);
+         g.drawLine(0, height - (int) (2 * Diameter) - 20 - Delta2, width / 2 - (int) (Diameter * (0.5 - alpha) * t), height - (int) (2 * Diameter) - 20 - Delta2);
+         // Draw the shock region
+         g.setColor(Color.cyan);
+         g.drawLine(width / 2 + (int) (Diameter * ((alpha - 0.5)) * t), height - (int) (2 * Diameter) - 20 - Delta2, width / 2 + (int) (Diameter * (alpha * t)), height + (int) (-2 * Diameter - 20 - Diameter * (alpha * t)));
+         }
+         }
+         if (IC == 2) {
+         g.setColor(Color.red);
+         g.drawLine(0, height - (int) (2 * Diameter) - 20 - Delta2, width, height - (int) (2 * Diameter) - 20 - Delta2);
+         }
+         if (IC == 0) {
+         g.setColor(Color.black);
+         g.drawLine(width / 2, height - (int) (2 * Diameter) - 20, width / 2 - height, height - (int) (2 * Diameter) - 20 - height);
+         g.drawLine(width / 2, height - (int) (2 * Diameter) - 20, width / 2 + height, height - (int) (2 * Diameter) - 20 - height);
+         // Draw the parabola
+         g.setColor(Color.red);
+         for (int k = 1 + (int) ((1 - alphaBis) * (1 - alphaBis) * t); k < t; k++) {
+         g.drawLine(width / 2 + (int) (Diameter * (t - 2 * Math.sqrt(t * k))), height + (int) (-2 * Diameter - 20 - Diameter * (2 * k + (t - 2 * Math.sqrt(t * k)))), width / 2 + (int) (Diameter * (t - 2 * Math.sqrt(t * (k - 1)))), height + (int) (-2 * Diameter - 20 - Diameter * (2 * k - 2 + (t - 2 * Math.sqrt(t * (k - 1))))));
+         }
+         // Draw the shock region
+         g.setColor(Color.cyan);
+         if (alpha < 1) {
+         g.drawLine(width / 2 + (int) (Diameter * (2 * alpha - 1) * t), height + (int) (-2 * Diameter - 20 - Diameter * (1 - 2 * alpha + 2 * alpha * alpha) * t), width / 2 + (int) (Diameter * (alpha * t)), height + (int) (-2 * Diameter - 20 - Diameter * (alpha * t)));
+         }
+         //
+         }
+         g.setColor(Color.blue);
+         if (IC == 2) {
+         Dm = Diameter * N * 1.0;
+         } else {
+         Dm = 0;
+         }
+         g.drawLine(width / 2 + (int) (Diameter * x[1] + Diameter), height + (int) (-2 * Diameter - 20 - Diameter * (2 * 1 + x[1]) + Diameter + Dm), width / 2 + (int) (Diameter * x[1] + Diameter) + height, height + (int) (-2 * Diameter - 20 - Diameter * (2 * 1 + x[1]) + Diameter + Dm) - height);
+         g.drawLine(width / 2 + (int) (Diameter * x[1]), height + (int) (-2 * Diameter - 20 - Diameter * (2 * 1 + x[1]) + Dm), width / 2 + (int) (Diameter * x[1] + Diameter), height + (int) (-2 * Diameter - 20 - Diameter * (2 * 1 + x[1]) + Diameter + Dm));
+         for (int k = 2; k < N; k++) {
+         g.drawLine(width / 2 + (int) (Diameter * x[k]), height + (int) (-2 * Diameter - 20 - Diameter * (2 * k + x[k]) + Dm), width / 2 + (int) (Diameter * x[k] + Diameter), height + (int) (-2 * Diameter - 20 - Diameter * (2 * k + x[k]) + Diameter + Dm));
+         g.drawLine(width / 2 + (int) (Diameter * x[k] + Diameter), height + (int) (-2 * Diameter - 20 - Diameter * (2 * k + x[k]) + Diameter + Dm), width / 2 + (int) (Diameter * x[k - 1]), height + (int) (-2 * Diameter - 20 - Diameter * (2 * k - 2 + x[k - 1]) + Dm));
+         }
+         }**/
+    }
 }

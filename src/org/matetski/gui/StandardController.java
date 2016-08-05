@@ -12,6 +12,9 @@ import java.awt.event.ActionListener;
 import java.util.HashMap;
 
 public class StandardController extends Controller {
+    public Canvas getCanvas() {
+        return canvas;
+    }
 
     private Canvas canvas;
 
@@ -25,14 +28,13 @@ public class StandardController extends Controller {
     }
 
     @Override
-    public void setParameters(HashMap<String, Object> parameters) {
+    public void setMyParameters(HashMap<String, Object> parameters) {
 
     }
 
     private final Timer timer;
 
     public StandardController(Model model) {
-        super(model);
         timer = new Timer(0, new TimerListener(model));
     }
 
@@ -42,7 +44,7 @@ public class StandardController extends Controller {
     }
 
     @FXML
-    private Button startStopButton;
+    private Button runPauseButton;
 
     @FXML
     private Button resetButton;
@@ -57,20 +59,20 @@ public class StandardController extends Controller {
     private Pane controlPanel;
 
     @FXML
-    private void startStopButtonAction() {
-        if (startStopButton.getText().equals(StartStopButtonState.START.toString())) {
+    private void runPauseButtonAction() {
+        if (runPauseButton.getText().equals(RunPauseButtonState.RUN.toString())) {
             timer.setDelay(getDelay());
             timer.start();
-            startStopButton.setText(StartStopButtonState.STOP.toString());
+            runPauseButton.setText(RunPauseButtonState.PAUSE.toString());
         } else {
             timer.stop();
-            startStopButton.setText(StartStopButtonState.START.toString());
+            runPauseButton.setText(RunPauseButtonState.RUN.toString());
         }
     }
 
     @FXML
     private void resetButtonAction() {
-        setParameters(getDefaultParameters());
+        //setParameters(getDefaultParameters());
     }
 
     @FXML
@@ -101,7 +103,7 @@ public class StandardController extends Controller {
         public void actionPerformed(java.awt.event.ActionEvent e) {
             SwingUtilities.invokeLater(() -> {
                 model.iterate();
-                model.paint(canvas);
+                model.paint(canvas.getGraphicsContext2D());
             });
         }
     }

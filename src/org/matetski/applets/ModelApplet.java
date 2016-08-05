@@ -8,6 +8,7 @@ import org.matetski.gui.Controller;
 import org.matetski.gui.StandardController;
 import org.matetski.utils.Model;
 import org.matetski.utils.ModelSimulator;
+import org.matetski.utils.ModelUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -47,14 +48,28 @@ public abstract class ModelApplet extends JApplet {
             Rectangle visualBounds = getContentPane().getBounds();
             fxPanel.setScene(new Scene(loader.load(), visualBounds.getWidth(), visualBounds.getHeight()));
             controller.createCanvas();
+            loadSubcontrollers(model, controller);
 
-            FXMLLoader controlLoader = new FXMLLoader(getClass().getResource(model.getControlGUIFileName()));
-            controller.getControlPanel().getChildren().add(controlLoader.load());
-
-            //controller.addSubcontroller(controlLoader.getController());
+            HashMap<String, Object> parameters = createParameters(model, controller);
+            model.setParameters(parameters);
+            controller.setParameters(parameters);
+            model.paint(controller.getCanvas().getGraphicsContext2D());
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void loadSubcontrollers(Model model, StandardController controller) throws IOException {
+        FXMLLoader controlLoader = new FXMLLoader(getClass().getResource(model.getControlGUIFileName()));
+        controller.getControlPanel().getChildren().add(controlLoader.load());
+        controller.addSubcontroller(controlLoader.getController());
+    }
+
+    private HashMap<String, Object> createParameters(Model model, StandardController controller) {
+        HashMap<String, Object> parameters = model.getDefaultParameters();
+        parameters.put(ModelUtils.SIZE_PARAMETER, new Dimension((int) controller.getCanvas().getWidth(),
+                (int) controller.getCanvas().getHeight()));
+        return parameters;
     }
 
     /**
