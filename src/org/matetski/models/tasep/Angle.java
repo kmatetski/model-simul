@@ -1,7 +1,7 @@
 package org.matetski.models.tasep;
 
 /**
- * Created by k.matetski on 7/17/16.
+ * @author K.Matetski
  */
 public enum Angle {
     ZERO("0%"),

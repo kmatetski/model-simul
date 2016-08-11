@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
- * Created by k.matetski on 7/17/16.
+ * @author K.Matetski
  */
 public abstract class Controller {
 

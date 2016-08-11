@@ -1,8 +1,10 @@
 package org.matetski.gui;
 
-/*
+/**
  * States of the button which stops and resumes execution of the algorithm.
- */
+ *
+ * @author K.Matetski
+ **/
 public enum RunPauseButtonState {
     RUN("Run"),
     PAUSE("Pause");

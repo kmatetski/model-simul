@@ -45,7 +45,7 @@ public class TASEPController extends Controller implements Initializable {
     protected void setMyParameters(HashMap<String, Object> parameters) {
         initialData.setValue((InitialData) parameters.get(TASEPUtils.INITIAL_DATA_PARAMETER));
         angle.setValue((Angle) parameters.get(TASEPUtils.ANGLE_PARAMETER));
-        particleRadius.setValue((Double) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER));
+        particleRadius.setValue((Integer) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER));
         jumpRate.setValue((Double) parameters.get(TASEPUtils.JUMP_RATE_PARAMETER));
     }
 }

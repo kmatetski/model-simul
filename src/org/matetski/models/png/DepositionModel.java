@@ -1,8 +1,6 @@
 package org.matetski.models.png;
 
-import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import org.matetski.gui.Controller;
 import org.matetski.utils.Model;
 import java.util.HashMap;
 

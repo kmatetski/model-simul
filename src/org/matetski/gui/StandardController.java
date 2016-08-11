@@ -23,7 +23,7 @@ public class StandardController extends Controller {
         return null;
     }
 
-    public HashMap<String,Object> getParameters() {
+    public HashMap<String, Object> getParameters() {
         return new HashMap<String, Object>();
     }
 

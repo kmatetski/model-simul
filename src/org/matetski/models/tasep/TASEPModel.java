@@ -9,34 +9,91 @@ import java.awt.*;
 import java.util.*;
 
 /**
- * An algorithm simulating the TASEP.
+ * An algorithm simulating the TASEP model.
  *
  * @author K.Matetski
  */
 
 public class TASEPModel extends Model {
 
-    private final static String CONTROL_GUI_FILE_NAME = "./tasep.fxml";
-    private final static String MODEL_NAME = "TASEP";
-
+    /**
+     * The default value of the jump rate of particles.
+     */
     private final static double DEFAULT_JUMP_RATE = 0.5;
-    private final static double DEFAULT_PARTICLE_SIZE = 2;
+
+    /**
+     * The default value of a particle's diameter on the canvas.
+     */
+    private final static int DEFAULT_PARTICLE_SIZE = 2;
+
+    /**
+     * The default value of the angle how the interface should be drawn, e.g. flat or titled.
+     */
     private final static Angle DEFAULT_ANGLE = Angle.ZERO;
+
+    /**
+     * The default value of the initial data, e.g. flat, step or half flat.
+     */
     private final static InitialData DEFAULT_INITIAL_DATA = InitialData.FLAT;
 
+    /**
+     * The margin in pixels from the bottom on the canvas where the particles are drawn.
+     */
     private final static int BOTTOM_MARGIN_TASEP = 10;
+
+    /**
+     * The margin in pixels from the bottom on the canvas where the interface is drawn.
+     */
     private final static int BOTTOM_MARGIN_HEIGHTS = BOTTOM_MARGIN_TASEP * 2;
+
+    /**
+     * The line width of the axis on the canvas.
+     */
     private final static double AXIS_LINE_WIDTH = 0.5;
+
+    /**
+     * The line width of the interface.
+     */
     private final static double STANDARD_LINE_WIDTH = 1;
+
+    /**
+     * Jump rate of the TASEP particles.
+     */
+    private double jumpRate;
+
+    /**
+     * This array contans positions of the particles. The 0th element is the right most particle.
+     */
+    private int[] particles;
+
+    /**
+     * Initial configuration of particles, e.g. flat, step or half flat.
+     */
+    private InitialData initialData;
+
+    /**
+     * Angle of how the interface will be drawn, e.g. flat or tilted.
+     */
+    private Angle angle;
+
+    /**
+     * The diameter of a particle, how it will be drawn on the canvas.
+     */
+    private int particleSize;
+
+    /**
+     * The model time, needed to draw the average value.
+     */
+    private double modelTime = 0;
 
     @Override
     public String getControlGUIFileName() {
-        return CONTROL_GUI_FILE_NAME;
+        return TASEPUtils.CONTROL_GUI_FILE_NAME;
     }
 
     @Override
     public String getModelName() {
-        return MODEL_NAME;
+        return TASEPUtils.MODEL_NAME;
     }
 
     @Override
@@ -46,13 +103,15 @@ public class TASEPModel extends Model {
 
     @Override
     public void setParameters(HashMap<String, Object> parameters) {
-        initialData = (InitialData) parameters.get(TASEPUtils.INITIAL_DATA_PARAMETER);
-        angle = (Angle) parameters.get(TASEPUtils.ANGLE_PARAMETER);
-        jumpRate = (Double) parameters.get(TASEPUtils.JUMP_RATE_PARAMETER);
-        particleSize = (Double) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER);
-        Dimension size = (Dimension) parameters.get(ModelUtils.SIZE_PARAMETER);
+        if (parameters != null) {
+            initialData = (InitialData) parameters.get(TASEPUtils.INITIAL_DATA_PARAMETER);
+            angle = (Angle) parameters.get(TASEPUtils.ANGLE_PARAMETER);
+            jumpRate = (Double) parameters.get(TASEPUtils.JUMP_RATE_PARAMETER);
+            particleSize = (Integer) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER);
+            Dimension windowSize = (Dimension) parameters.get(ModelUtils.SIZE_PARAMETER);
 
-        initializeParticles((int) (size.getWidth() / particleSize));
+            initializeParticles((int) (windowSize.getWidth() / particleSize));
+        }
     }
 
     @Override
@@ -65,19 +124,13 @@ public class TASEPModel extends Model {
         return parameters;
     }
 
-    private double jumpRate;
-    private int[] particles;
-    private boolean[] particlesCanJump;
-    private int numberOfFreeParticles;
-    private InitialData initialData;
-    private Angle angle;
-    private double particleSize;
-    private double modelTime = 0;
-
     @Override
     public void initialize() {
     }
 
+    /**
+     * Initializes the starting configuration of the particles.
+     */
     private void initializeParticles(int size) {
         switch (initialData) {
             case FLAT:
@@ -100,61 +153,29 @@ public class TASEPModel extends Model {
                 }
                 break;
         }
-        initializeJumps();
     }
 
-    private void initializeJumps() {
-        particlesCanJump = new boolean[particles.length];
-        if (particlesCanJump.length > 1) {
-            particlesCanJump[0] = true;
-            numberOfFreeParticles = 1;
-        }
-        for (int k = 1; k < particlesCanJump.length; k++) {
-            if (particles[k - 1] - particles[k] > 1) {
-                particlesCanJump[k] = true;
-                numberOfFreeParticles++;
-            } else {
-                particlesCanJump[k] = false;
-            }
-        }
+    /**
+     * Checks if the particle with the given number can jump.
+     *
+     * @param index number of a particle.
+     * @return {@code true} if the particle can jump and {@code false} otherwise.
+     */
+    private boolean canJump(int index) {
+        return !(particles == null || particles.length == 0 || index >= particles.length)
+                && (index == 0 || particles[index - 1] - particles[index] > 1);
     }
 
     @Override
     public void update() {
         double localTime = 0;
-
         while (localTime <= 1) {
-            // Determine the time of next jump
-            localTime += -Math.log(Math.random()) / (jumpRate + (numberOfFreeParticles - 1));
-
-            // Determine if it is the first particle jumping or not
-            if (Math.random() <= jumpRate / (jumpRate + (numberOfFreeParticles - 1))) {
-                particles[0]++;
-                if (particlesCanJump.length > 1 && !particlesCanJump[1]) {
-                    particlesCanJump[1] = true;
-                    numberOfFreeParticles++;
-                }
-            } else {
-                // choose randomly one of the other particle that can jump
-                int nextJumping = 0;
-                while (nextJumping == 0 && numberOfFreeParticles > 1) {
-                    int tryJumping = (int) (Math.random() * (particles.length - 1)) + 1;
-                    if (tryJumping < particlesCanJump.length && particlesCanJump[tryJumping]) {
-                        nextJumping = tryJumping;
-                    }
-                }
-                particles[nextJumping]++;
-                if (particles[nextJumping - 1] - particles[nextJumping] == 1) {
-                    particlesCanJump[nextJumping] = false;
-                    numberOfFreeParticles--;
-                }
-                if (nextJumping < particles.length - 1 && !particlesCanJump[nextJumping + 1]) {
-                    particlesCanJump[nextJumping + 1] = true;
-                    numberOfFreeParticles++;
-                }
+            localTime += -Math.log(Math.random()) / (jumpRate * particles.length);
+            int numberOfJumping = (int) (Math.random() * particles.length);
+            if (canJump(numberOfJumping)) {
+                particles[numberOfJumping]++;
             }
         }
-
         modelTime += localTime;
     }
 
@@ -164,30 +185,32 @@ public class TASEPModel extends Model {
         double canvasHeight = graphicsContext.getCanvas().getHeight();
 
         graphicsContext.clearRect(0, 0, canvasWidth, canvasHeight);
-
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(AXIS_LINE_WIDTH);
         graphicsContext.strokeLine(canvasWidth / 2, 0, canvasWidth / 2, canvasHeight);
-        graphicsContext.strokeLine(0, canvasHeight - (int) particleSize - BOTTOM_MARGIN_HEIGHTS,
-                canvasWidth, canvasHeight - (int) particleSize - BOTTOM_MARGIN_HEIGHTS);
+        graphicsContext.strokeLine(0, canvasHeight - particleSize - BOTTOM_MARGIN_HEIGHTS,
+                canvasWidth, canvasHeight - particleSize - BOTTOM_MARGIN_HEIGHTS);
 
         drawTASEP(graphicsContext);
         drawHeights(graphicsContext);
     }
 
+    /**
+     * Draws the TASEP particles at the bottom of the canvas.
+     */
     private void drawTASEP(GraphicsContext graphicsContext) {
         graphicsContext.setFill(Color.BLUE);
         for (int particle : particles) {
             graphicsContext.fillOval((int) (graphicsContext.getCanvas().getWidth() / 2 + particleSize * particle),
-                    graphicsContext.getCanvas().getHeight() - (int) particleSize - BOTTOM_MARGIN_TASEP,
-                    (int) particleSize, (int) particleSize);
+                    graphicsContext.getCanvas().getHeight() - particleSize - BOTTOM_MARGIN_TASEP,
+                    particleSize, particleSize);
         }
     }
 
+    /**
+     * Draws the growth process.
+     */
     private void drawHeights(GraphicsContext graphicsContext) {
-        double width = graphicsContext.getCanvas().getWidth();
-        double height = graphicsContext.getCanvas().getHeight();
-
         switch (angle) {
             case ZERO:
                 drawFlatHeights(graphicsContext);
@@ -196,14 +219,12 @@ public class TASEPModel extends Model {
                 drawObliqueHeights(graphicsContext);
                 break;
         }
-
-        graphicsContext.setStroke(Color.BLACK);
-        graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20, width, height - (int) (2 * particleSize) - 20);
     }
 
+    /**
+     * Draws the growth process for the flat angle.
+     */
     private void drawFlatHeights(GraphicsContext graphicsContext) {
-        drawParticles(graphicsContext);
-
         switch (initialData) {
             case HALF_FLAT:
                 drawHalfFlatForFlatHeights(graphicsContext);
@@ -215,19 +236,7 @@ public class TASEPModel extends Model {
                 drawStepForFlatHeights(graphicsContext);
                 break;
         }
-
         drawCornersForFlatHeights(graphicsContext);
-    }
-
-    // Draw the TASEP particles position in the (k,x_k+k) plot
-    private void drawParticles(GraphicsContext graphicsContext) {
-        double width = graphicsContext.getCanvas().getWidth();
-        double height = graphicsContext.getCanvas().getHeight();
-
-        graphicsContext.setStroke(Color.BLUE);
-        for (int k = 1; k < particles.length; k++) {
-            graphicsContext.fillOval((int) (width / 2 + particleSize * particles[k]), height - (int) (particleSize) - 10, (int) (particleSize) + 1, (int) (particleSize) + 1);
-        }
     }
 
     private void drawHalfFlatForFlatHeights(GraphicsContext graphicsContext) {
@@ -236,11 +245,11 @@ public class TASEPModel extends Model {
         int Delta2 = (int) (particleSize * modelTime / 2);
 
         graphicsContext.setStroke(Color.BLACK);
-        graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 + height, height - (int) (2 * particleSize) - 20 - height);
+        graphicsContext.strokeLine(width / 2, height - 2 * particleSize - 20, width / 2 + height, height - 2 * particleSize - 20 - height);
         if (jumpRate > 0.5) {
             // draw the flat part
             graphicsContext.setStroke(Color.BLACK);
-            graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - Delta2, width / 2, height - (int) (2 * particleSize) - 20 - Delta2);
+            graphicsContext.strokeLine(0, height - 2 * particleSize - 20 - Delta2, width / 2, height - 2 * particleSize - 20 - Delta2);
             // Draw the parabola
             graphicsContext.setStroke(Color.RED);
             for (int k = 1 + (int) ((1 - jumpRate) * (1 - jumpRate) * modelTime); k < modelTime / 4; k++) {
@@ -254,29 +263,34 @@ public class TASEPModel extends Model {
         } else {
             // draw the flat part
             graphicsContext.setStroke(Color.RED);
-            graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - Delta2, width / 2 - (int) (particleSize * (0.5 - jumpRate) * modelTime), height - (int) (2 * particleSize) - 20 - Delta2);
+            graphicsContext.strokeLine(0, height - 2 * particleSize - 20 - Delta2, width / 2 - (int) (particleSize * (0.5 - jumpRate) * modelTime), height - 2 * particleSize - 20 - Delta2);
             // Draw the shock region
             graphicsContext.setStroke(Color.CYAN);
-            graphicsContext.strokeLine(width / 2 + (int) (particleSize * ((jumpRate - 0.5)) * modelTime), height - (int) (2 * particleSize) - 20 - Delta2, width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
+            graphicsContext.strokeLine(width / 2 + (int) (particleSize * ((jumpRate - 0.5)) * modelTime), height - 2 * particleSize - 20 - Delta2, width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
         }
     }
 
+    /**
+     * Draws the trend line in the case of the flat initial data and flat angle.
+     */
     private void drawFlatForFlatHeights(GraphicsContext graphicsContext) {
         double width = graphicsContext.getCanvas().getWidth();
         double height = graphicsContext.getCanvas().getHeight();
-        int Delta2 = (int) (particleSize * modelTime / 2);
-
+        int trend = (int) (jumpRate * modelTime);
         graphicsContext.setStroke(Color.RED);
-        graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - Delta2, width, height - (int) (2 * particleSize) - 20 - Delta2);
+        graphicsContext.strokeLine(0, height - particleSize - BOTTOM_MARGIN_HEIGHTS - trend,
+                width, height - particleSize - BOTTOM_MARGIN_HEIGHTS - trend);
     }
+
+    //TODO: drawing disappears sometimes
 
     private void drawStepForFlatHeights(GraphicsContext graphicsContext) {
         double width = graphicsContext.getCanvas().getWidth();
         double height = graphicsContext.getCanvas().getHeight();
 
         graphicsContext.setStroke(Color.BLACK);
-        graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 - height, height - (int) (2 * particleSize) - 20 - height);
-        graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 + height, height - (int) (2 * particleSize) - 20 - height);
+        graphicsContext.strokeLine(width / 2, height - 2 * particleSize - 20, width / 2 - height, height - 2 * particleSize - 20 - height);
+        graphicsContext.strokeLine(width / 2, height - 2 * particleSize - 20, width / 2 + height, height - 2 * particleSize - 20 - height);
 // Draw the parabola
         graphicsContext.setStroke(Color.RED);
         for (int k = 1 + (int) ((1 - jumpRate) * (1 - jumpRate) * modelTime); k < modelTime; k++) {
@@ -290,87 +304,32 @@ public class TASEPModel extends Model {
     }
 
     /**
-     * int globalShift = (int) (particleSize * modelTime / 2);
-     * <p>
-     * switch (initialData) {
-     * case FLAT:
-     * graphicsContext.setStroke(Color.RED);
-     * graphicsContext.setLineWidth(AXIS_LINE_WIDTH);
-     * graphicsContext.strokeLine(0, height - BOTTOM_MARGIN_HEIGHTS - (int) particleSize - globalShift,
-     * width, height - BOTTOM_MARGIN_HEIGHTS - (int) particleSize - globalShift);
-     * break;
-     * case HALF_FLAT:
-     * graphicsContext.setFill(Color.BLACK);
-     * graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20,
-     * width / 2 + height, height - (int) (2 * particleSize) - 20 - height);
-     * if (jumpRate > 0.5) {
-     * // draw the flat part
-     * graphicsContext.setFill(Color.BLACK);
-     * graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - globalShift,
-     * width / 2, height - (int) (2 * particleSize) - 20 - globalShift);
-     * // Draw the parabola
-     * graphicsContext.setFill(Color.RED);
-     * for (int k = 1 + (int) ((1 - jumpRate) * (1 - jumpRate) * modelTime); k < modelTime / 4; k++) {
-     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * k))),
-     * height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + (modelTime - 2 * Math.sqrt(modelTime * k)))),
-     * width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * (k - 1)))),
-     * height + (int) (-2 * particleSize - 20 - particleSize * (2 * k - 2 + (modelTime - 2 * Math.sqrt(modelTime * (k - 1))))));
-     * }
-     * // Draw the shock region
-     * graphicsContext.setFill(Color.CYAN);
-     * if (jumpRate < 1) {
-     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * (2 * jumpRate - 1) * modelTime),
-     * height + (int) (-2 * particleSize - 20 - particleSize * (1 - 2 * jumpRate + 2 * jumpRate * jumpRate) * modelTime),
-     * width / 2 + (int) (particleSize * (jumpRate * modelTime)),
-     * height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
-     * }
-     * } else {
-     * // draw the flat part
-     * graphicsContext.setFill(Color.RED);
-     * graphicsContext.strokeLine(0, height - (int) (2 * particleSize) - 20 - globalShift,
-     * width / 2 - (int) (particleSize * (0.5 - jumpRate) * modelTime), height - (int) (2 * particleSize) - 20 - globalShift);
-     * // Draw the shock region
-     * graphicsContext.setFill(Color.CYAN);
-     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * ((jumpRate - 0.5)) * modelTime), height - (int) (2 * particleSize) - 20 - globalShift,
-     * width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
-     * }
-     * break;
-     * case STEP:
-     * graphicsContext.setFill(Color.BLACK);
-     * graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 - height, height - (int) (2 * particleSize) - 20 - height);
-     * graphicsContext.strokeLine(width / 2, height - (int) (2 * particleSize) - 20, width / 2 + height, height - (int) (2 * particleSize) - 20 - height);
-     * //Draw the parabola
-     * graphicsContext.setFill(Color.RED);
-     * for (int k = 1 + (int) ((1 - jumpRate) * (1 - jumpRate) * modelTime); k < modelTime; k++) {
-     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * k))),
-     * height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + (modelTime - 2 * Math.sqrt(modelTime * k)))),
-     * width / 2 + (int) (particleSize * (modelTime - 2 * Math.sqrt(modelTime * (k - 1)))),
-     * height + (int) (-2 * particleSize - 20 - particleSize * (2 * k - 2 + (modelTime - 2 * Math.sqrt(modelTime * (k - 1))))));
-     * }
-     * //Draw the shock region
-     * graphicsContext.setFill(Color.CYAN);
-     * if (jumpRate < 1) {
-     * graphicsContext.strokeLine(width / 2 + (int) (particleSize * (2 * jumpRate - 1) * modelTime),
-     * height + (int) (-2 * particleSize - 20 - particleSize * (1 - 2 * jumpRate + 2 * jumpRate * jumpRate) * modelTime),
-     * width / 2 + (int) (particleSize * (jumpRate * modelTime)), height + (int) (-2 * particleSize - 20 - particleSize * (jumpRate * modelTime)));
-     * }
-     * break;
-     * }
-     **/
-    //drawCornersForFlatHeights(graphicsContext);
+     * Draws the landscape.
+     */
     private void drawCornersForFlatHeights(GraphicsContext graphicsContext) {
         graphicsContext.setLineWidth(STANDARD_LINE_WIDTH);
-
         double width = graphicsContext.getCanvas().getWidth();
         double height = graphicsContext.getCanvas().getHeight();
-        double Dm = (initialData == InitialData.FLAT) ? particleSize * particles.length * 1 : 0;
+        double Dm = (initialData == InitialData.FLAT) ? particleSize * particles.length : 0;
 
         graphicsContext.setStroke(Color.BLUE);
-        graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[1] + particleSize), height + (int) (-2 * particleSize - 20 - particleSize * (2 + particles[1]) + particleSize + Dm), width / 2 + (int) (particleSize * particles[1] + particleSize) + height, height + (int) (-2 * particleSize - 20 - particleSize * (2 + particles[1]) + particleSize + Dm) - height);
-        graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[1]), height + (int) (-2 * particleSize - 20 - particleSize * (2 + particles[1]) + Dm), width / 2 + (int) (particleSize * particles[1] + particleSize), height + (int) (-2 * particleSize - 20 - particleSize * (2 + particles[1]) + particleSize + Dm));
-        for (int k = 2; k < particles.length; k++) {
-            graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[k]), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + particles[k]) + Dm), width / 2 + (int) (particleSize * particles[k] + particleSize), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + particles[k]) + particleSize + Dm));
-            graphicsContext.strokeLine(width / 2 + (int) (particleSize * particles[k] + particleSize), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k + particles[k]) + particleSize + Dm), width / 2 + (int) (particleSize * particles[k - 1]), height + (int) (-2 * particleSize - 20 - particleSize * (2 * k - 2 + particles[k - 1]) + Dm));
+        graphicsContext.strokeLine(width / 2 + particleSize * particles[0] + particleSize,
+                height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 + particles[0]) + particleSize + Dm),
+                width / 2 + particleSize * particles[1] + particleSize + height,
+                height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 + particles[0]) + particleSize + Dm) - height);
+        graphicsContext.strokeLine(width / 2 + particleSize * particles[0],
+                height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 + particles[0]) + Dm),
+                width / 2 + particleSize * particles[1] + particleSize,
+                height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 + particles[0]) + particleSize + Dm));
+        for (int k = 1; k < particles.length; k++) {
+            graphicsContext.strokeLine(width / 2 + particleSize * particles[k],
+                    height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * k + particles[k]) + Dm),
+                    width / 2 + particleSize * particles[k] + particleSize,
+                    height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * k + particles[k]) + particleSize + Dm));
+            graphicsContext.strokeLine(width / 2 + particleSize * particles[k] + particleSize,
+                    height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * k + particles[k]) + particleSize + Dm),
+                    width / 2 + particleSize * particles[k - 1],
+                    height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * k - 2 + particles[k - 1]) + Dm));
         }
     }
 

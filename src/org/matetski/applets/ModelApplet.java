@@ -4,7 +4,6 @@ import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import org.matetski.gui.Controller;
 import org.matetski.gui.StandardController;
 import org.matetski.utils.Model;
 import org.matetski.utils.ModelSimulator;
@@ -16,7 +15,7 @@ import java.io.IOException;
 import java.util.HashMap;
 
 /**
- * Created by k.matetski on 7/14/16.
+ * @author K.Matetski
  */
 
 public abstract class ModelApplet extends JApplet {
@@ -25,10 +24,10 @@ public abstract class ModelApplet extends JApplet {
 
     @Override
     public final void init() {
-        Frame frame = (Frame)getParent().getParent();
+        Frame frame = (Frame) getParent().getParent();
         frame.setTitle(getModel().getModelName());
         SwingUtilities.invokeLater(
-                        () -> initSwing()
+                () -> initSwing()
         );
     }
 
