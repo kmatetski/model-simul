@@ -30,6 +30,11 @@ public class DummyModel extends Model {
     }
 
     @Override
+    public boolean canStop() {
+        return false;
+    }
+
+    @Override
     public void paint(GraphicsContext graphicsContext) {
         switch (colorNumber) {
             case 0:

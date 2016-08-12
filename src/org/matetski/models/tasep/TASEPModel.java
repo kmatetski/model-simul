@@ -86,6 +86,11 @@ public class TASEPModel extends Model {
      */
     private double modelTime = 0;
 
+    /**
+     * Is true if the algorithm can be stopped, e.g. if the growth process goes above the window.
+     */
+    private boolean canBeStopped = false;
+
     @Override
     public String getControlGUIFileName() {
         return TASEPUtils.CONTROL_GUI_FILE_NAME;
@@ -110,7 +115,7 @@ public class TASEPModel extends Model {
             particleSize = (Integer) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER);
             Dimension windowSize = (Dimension) parameters.get(ModelUtils.SIZE_PARAMETER);
 
-            initializeParticles((int) (windowSize.getWidth() / particleSize));
+            initializeParticles(windowSize);
         }
     }
 
@@ -130,24 +135,28 @@ public class TASEPModel extends Model {
 
     /**
      * Initializes the starting configuration of the particles.
+     * In the flat case the number of particles is takem bigger than the width of the widow,
+     * to make sure that the left border cannot be seen before hitting the top of the window.
      */
-    private void initializeParticles(int size) {
+    private void initializeParticles(Dimension size) {
+        int width = (int) (size.getWidth() / particleSize);
+        int height = (int) (size.getHeight() / particleSize);
         switch (initialData) {
             case FLAT:
-                int particlesNumber = size / 2;
+                int particlesNumber = width / 2 + (int) (height / (2 * jumpRate));
                 particles = new int[particlesNumber];
                 for (int k = 0; k < particles.length; k++) {
                     particles[k] = particlesNumber - 2 * k - 1;
                 }
                 break;
             case HALF_FLAT:
-                particles = new int[size / 4];
+                particles = new int[width / 4];
                 for (int k = 0; k < particles.length; k++) {
                     particles[k] = -2 * k - 1;
                 }
                 break;
             case STEP:
-                particles = new int[size / 2];
+                particles = new int[width / 2];
                 for (int k = 0; k < particles.length; k++) {
                     particles[k] = -k;
                 }
@@ -156,7 +165,7 @@ public class TASEPModel extends Model {
     }
 
     /**
-     * Checks if the particle with the given number can jump.
+     * Checks if the particle with the given number can jump, i.e. if the right position is empty.
      *
      * @param index number of a particle.
      * @return {@code true} if the particle can jump and {@code false} otherwise.
@@ -177,6 +186,11 @@ public class TASEPModel extends Model {
             }
         }
         modelTime += localTime;
+    }
+
+    @Override
+    public boolean canStop() {
+        return canBeStopped;
     }
 
     @Override
@@ -272,6 +286,7 @@ public class TASEPModel extends Model {
 
     /**
      * Draws the trend line in the case of the flat initial data and flat angle.
+     * If the growth process doesn't fit into the window, the algorithm is stopped.
      */
     private void drawFlatForFlatHeights(GraphicsContext graphicsContext) {
         double width = graphicsContext.getCanvas().getWidth();
@@ -280,9 +295,10 @@ public class TASEPModel extends Model {
         graphicsContext.setStroke(Color.RED);
         graphicsContext.strokeLine(0, height - particleSize - BOTTOM_MARGIN_HEIGHTS - trend,
                 width, height - particleSize - BOTTOM_MARGIN_HEIGHTS - trend);
+        if (trend >= height) {
+            canBeStopped = true;
+        }
     }
-
-    //TODO: drawing disappears sometimes
 
     private void drawStepForFlatHeights(GraphicsContext graphicsContext) {
         double width = graphicsContext.getCanvas().getWidth();
@@ -304,32 +320,33 @@ public class TASEPModel extends Model {
     }
 
     /**
-     * Draws the landscape.
+     * Draws the landscape for the flat angle.
      */
     private void drawCornersForFlatHeights(GraphicsContext graphicsContext) {
+        graphicsContext.setStroke(Color.BLUE);
         graphicsContext.setLineWidth(STANDARD_LINE_WIDTH);
+        for (int particleNumber = 0; particleNumber < particles.length; particleNumber++) {
+            drawCorner(graphicsContext, particleNumber);
+        }
+    }
+
+    /**
+     * Draws a corner for the particle with the given number.
+     *
+     * @param particleNumber the number of the particle whose corner will be drawn.
+     */
+    private void drawCorner(GraphicsContext graphicsContext, int particleNumber) {
         double width = graphicsContext.getCanvas().getWidth();
         double height = graphicsContext.getCanvas().getHeight();
-        double Dm = (initialData == InitialData.FLAT) ? particleSize * particles.length : 0;
+        double horizontalShift = width / 2 + particleSize * particles[particleNumber],
+                verticalShift = height - BOTTOM_MARGIN_HEIGHTS + particleSize * (particles.length - 2 * particleNumber
+                        - particles[particleNumber] - 1);
 
-        graphicsContext.setStroke(Color.BLUE);
-        graphicsContext.strokeLine(width / 2 + particleSize * particles[0] + particleSize,
-                height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 + particles[0]) + particleSize + Dm),
-                width / 2 + particleSize * particles[1] + particleSize + height,
-                height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 + particles[0]) + particleSize + Dm) - height);
-        graphicsContext.strokeLine(width / 2 + particleSize * particles[0],
-                height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 + particles[0]) + Dm),
-                width / 2 + particleSize * particles[1] + particleSize,
-                height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 + particles[0]) + particleSize + Dm));
-        for (int k = 1; k < particles.length; k++) {
-            graphicsContext.strokeLine(width / 2 + particleSize * particles[k],
-                    height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * k + particles[k]) + Dm),
-                    width / 2 + particleSize * particles[k] + particleSize,
-                    height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * k + particles[k]) + particleSize + Dm));
-            graphicsContext.strokeLine(width / 2 + particleSize * particles[k] + particleSize,
-                    height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * k + particles[k]) + particleSize + Dm),
-                    width / 2 + particleSize * particles[k - 1],
-                    height + (int) (-2 * particleSize - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * k - 2 + particles[k - 1]) + Dm));
+        graphicsContext.strokeLine(horizontalShift, verticalShift - particleSize, horizontalShift + particleSize, verticalShift);
+        if (particleNumber > 0) {
+            graphicsContext.strokeLine(horizontalShift + particleSize, verticalShift,
+                    width / 2 + particleSize * particles[particleNumber - 1],
+                    height - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * particleNumber + particles[particleNumber - 1] - particles.length));
         }
     }
 

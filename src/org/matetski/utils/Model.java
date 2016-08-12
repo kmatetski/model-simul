@@ -24,6 +24,13 @@ public abstract class Model {
     protected abstract void update();
 
     /**
+     * Checks whether the algorithm can stop.
+     *
+     * @return {@code true} if the algorithm can stop.
+     */
+    public abstract boolean canStop();
+
+    /**
      * Paints the output of the algorithm.
      *
      * @param graphicsContext The canvas on which the output should be drawn.

@@ -16,6 +16,11 @@ public class DepositionModel extends Model {
 	}
 
 	@Override
+	public boolean canStop() {
+		return false;
+	}
+
+	@Override
 	public void paint(GraphicsContext graphicsContext) {
 
 	}

@@ -1,5 +1,6 @@
 package org.matetski.gui;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.Button;
@@ -65,9 +66,13 @@ public class StandardController extends Controller {
             timer.start();
             runPauseButton.setText(RunPauseButtonState.PAUSE.toString());
         } else {
-            timer.stop();
-            runPauseButton.setText(RunPauseButtonState.RUN.toString());
+            stopSimulation();
         }
+    }
+
+    private void stopSimulation() {
+        timer.stop();
+        runPauseButton.setText(RunPauseButtonState.RUN.toString());
     }
 
     @FXML
@@ -101,10 +106,14 @@ public class StandardController extends Controller {
 
         @Override
         public void actionPerformed(java.awt.event.ActionEvent e) {
-            SwingUtilities.invokeLater(() -> {
-                model.iterate();
-                model.paint(canvas.getGraphicsContext2D());
-            });
+            if (model.canStop()) {
+                Platform.runLater(() -> stopSimulation());
+            } else {
+                Platform.runLater(() -> {
+                    model.iterate();
+                    model.paint(canvas.getGraphicsContext2D());
+                });
+            }
         }
     }
 }
