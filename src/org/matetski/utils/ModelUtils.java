@@ -1,7 +1,5 @@
 package org.matetski.utils;
 
-import java.util.HashMap;
-
 /**
  * Contains constants and methods related to the general model class.
  *
@@ -9,7 +7,7 @@ import java.util.HashMap;
  */
 public final class ModelUtils {
     /**
-     * The name of the parameter containg the window's size.
+     * The name of the parameter containing the window's size.
      */
     public static final String SIZE_PARAMETER = "SIZE";
 }

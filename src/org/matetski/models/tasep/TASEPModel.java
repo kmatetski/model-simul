@@ -62,7 +62,7 @@ public class TASEPModel extends Model {
     private double jumpRate;
 
     /**
-     * This array contans positions of the particles. The 0th element is the right most particle.
+     * This array contains positions of the particles. The 0th element is the right most particle.
      */
     private int[] particles;
 
@@ -230,7 +230,7 @@ public class TASEPModel extends Model {
             case ZERO:
                 drawFlatHeights(graphicsContext);
                 break;
-            case FOURTY_FIVE:
+            case FORTY_FIVE:
                 drawObliqueHeights(graphicsContext);
                 break;
         }

@@ -1,5 +1,7 @@
 package org.matetski.gui;
 
+import javafx.fxml.Initializable;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,7 +9,7 @@ import java.util.List;
 /**
  * @author K.Matetski
  */
-public abstract class Controller {
+public abstract class Controller implements Initializable {
 
     /**
      * A list of subcontrollers of the controller, e.g. controllers for a particular model.
@@ -24,7 +26,7 @@ public abstract class Controller {
     /**
      * Returns a collection of parameters obtained from all subcontrollers.
      */
-    public HashMap<String, Object> getParameters() {
+    HashMap<String, Object> getParameters() {
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.putAll(createParameters());
         if (subcontrollers != null) {
@@ -53,21 +55,17 @@ public abstract class Controller {
         subcontrollers.add(controller);
     }
 
-    protected void makeSubcontrollersUnactive() {
-        makeUnactive();
+    void makeSubcontrollersInactive() {
+        makeInactive();
         if (subcontrollers != null) {
-            for (Controller controller : subcontrollers) {
-                controller.makeUnactive();
-            }
+            subcontrollers.forEach(Controller::makeInactive);
         }
     }
 
-    protected void makeSubcontrollersActive() {
+    void makeSubcontrollersActive() {
         makeActive();
         if (subcontrollers != null) {
-            for (Controller controller : subcontrollers) {
-                controller.makeActive();
-            }
+            subcontrollers.forEach(Controller::makeActive);
         }
     }
 
@@ -75,13 +73,13 @@ public abstract class Controller {
         parentController = controller;
     }
 
-    public Controller getParentController() {
+    protected Controller getParentController() {
         return parentController;
     }
 
-    protected abstract void makeUnactive();
+    protected abstract void makeInactive();
 
     protected abstract void makeActive();
 
-    public abstract void stateChanged(HashMap<String, Object> parameters);
+    public abstract void stateChanged(HashMap<String, Object> parameters, boolean repaint);
 }

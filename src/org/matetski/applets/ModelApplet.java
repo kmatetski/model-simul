@@ -28,7 +28,7 @@ public abstract class ModelApplet extends JApplet {
         Frame frame = (Frame) getParent().getParent();
         frame.setTitle(getModel().getModelName());
         SwingUtilities.invokeLater(
-                () -> initSwing()
+                this::initSwing
         );
     }
 

@@ -2,7 +2,6 @@ package org.matetski.models.tasep;
 
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Slider;
 import org.matetski.gui.Controller;
@@ -10,7 +9,7 @@ import org.matetski.gui.Controller;
 import java.net.URL;
 import java.util.*;
 
-public class TASEPController extends Controller implements Initializable {
+public class TASEPController extends Controller {
 
     @FXML
     private ChoiceBox<InitialData> initialData;
@@ -24,10 +23,15 @@ public class TASEPController extends Controller implements Initializable {
     @FXML
     private Slider jumpRate;
 
-    private void stateChangedAction() {
+    /**
+     * Updates parameters after their change on the panel.
+     *
+     * @param repaint if {@code true} if the model should be repainted after changing its parameters.
+     */
+    private void stateChangedAction(boolean repaint) {
         HashMap<String, Object> parameters = createParameters();
         if (getParentController() != null) {
-            getParentController().stateChanged(parameters);
+            getParentController().stateChanged(parameters, repaint);
         }
     }
 
@@ -39,13 +43,13 @@ public class TASEPController extends Controller implements Initializable {
         angle.setItems(FXCollections.observableArrayList(Angle.values()));
 
         initialData.getSelectionModel().selectedItemProperty().addListener(
-                (observable, oldValue, newValue) -> stateChangedAction()
+                (observable, oldValue, newValue) -> stateChangedAction(true)
         );
         angle.getSelectionModel().selectedItemProperty().addListener(
-                (observable, oldValue, newValue) -> stateChangedAction()
+                (observable, oldValue, newValue) -> stateChangedAction(true)
         );
-        particleRadius.valueProperty().addListener((listener) -> stateChangedAction());
-        jumpRate.valueProperty().addListener((listener) -> stateChangedAction());
+        particleRadius.valueProperty().addListener((listener) -> stateChangedAction(true));
+        jumpRate.valueProperty().addListener((listener) -> stateChangedAction(false));
     }
 
     @Override
@@ -67,7 +71,7 @@ public class TASEPController extends Controller implements Initializable {
     }
 
     @Override
-    protected void makeUnactive() {
+    protected void makeInactive() {
         initialData.setDisable(true);
         angle.setDisable(true);
         particleRadius.setDisable(true);
@@ -83,6 +87,6 @@ public class TASEPController extends Controller implements Initializable {
     }
 
     @Override
-    public void stateChanged(HashMap<String, Object> parameters) {
+    public void stateChanged(HashMap<String, Object> parameters, boolean repaint) {
     }
 }

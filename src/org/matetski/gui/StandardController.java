@@ -12,15 +12,15 @@ import org.matetski.utils.ModelUtils;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.net.URL;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 
 public class StandardController extends Controller {
 
     private Canvas canvas;
 
-    private Model model;
-
-    private boolean hasNotRun = true;
+    private final Model model;
 
     public Canvas getCanvas() {
         return canvas;
@@ -39,7 +39,7 @@ public class StandardController extends Controller {
     }
 
     @Override
-    protected void makeUnactive() {
+    protected void makeInactive() {
 
     }
 
@@ -49,13 +49,13 @@ public class StandardController extends Controller {
     }
 
     @Override
-    public void stateChanged(HashMap<String, Object> parameters) {
+    public void stateChanged(HashMap<String, Object> parameters, boolean repaint) {
         parameters.put(ModelUtils.SIZE_PARAMETER, new Dimension((int) canvas.getWidth(),
                 (int) canvas.getHeight()));
         model.setParameters(parameters);
-        Platform.runLater(() -> {
-            model.paint(canvas.getGraphicsContext2D());
-        });
+        if (repaint) {
+            Platform.runLater(() -> model.paint(canvas.getGraphicsContext2D()));
+        }
     }
 
     private final Timer timer;
@@ -85,12 +85,9 @@ public class StandardController extends Controller {
     @FXML
     private Pane controlPanel;
 
-    @FXML
     private void runPauseButtonAction() {
         if (runPauseButton.getText().equals(RunPauseButtonState.RUN.toString())) {
-            if (hasNotRun) {
-                makeSubcontrollersUnactive();
-            }
+            makeSubcontrollersInactive();
             timer.setDelay(getDelay());
             timer.start();
             runPauseButton.setText(RunPauseButtonState.PAUSE.toString());
@@ -107,13 +104,10 @@ public class StandardController extends Controller {
         runPauseButton.setText(RunPauseButtonState.RUN.toString());
     }
 
-    @FXML
     private void resetButtonAction() {
         stopSimulation();
         model.setParameters(getParameters());
-        Platform.runLater(() -> {
-            model.paint(canvas.getGraphicsContext2D());
-        });
+        Platform.runLater(() -> model.paint(canvas.getGraphicsContext2D()));
         makeSubcontrollersActive();
     }
 
@@ -126,7 +120,7 @@ public class StandardController extends Controller {
         return controlPanel;
     }
 
-    public Pane getDrawingPane() {
+    private Pane getDrawingPane() {
         return drawingPane;
     }
 
@@ -137,14 +131,14 @@ public class StandardController extends Controller {
     private class TimerListener implements ActionListener {
         private final Model model;
 
-        public TimerListener(Model model) {
+        TimerListener(Model model) {
             this.model = model;
         }
 
         @Override
         public void actionPerformed(java.awt.event.ActionEvent e) {
             if (model.canStop()) {
-                Platform.runLater(() -> stopSimulation());
+                Platform.runLater(StandardController.this::stopSimulation);
                 makeSubcontrollersActive();
                 Platform.runLater(() -> {
                     model.setParameters(getParameters());
@@ -157,5 +151,12 @@ public class StandardController extends Controller {
                 });
             }
         }
+    }
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        runPauseButton.setOnAction((value) -> runPauseButtonAction());
+        resetButton.setOnAction((value) -> resetButtonAction());
+        delaySlider.valueProperty().addListener((listener) -> delayChangedAction());
     }
 }

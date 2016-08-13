@@ -5,7 +5,7 @@ package org.matetski.models.tasep;
  *
  * @author K.Matetski
  */
-public final class TASEPUtils {
+final class TASEPUtils {
     /**
      * The names of parameters used by the model.
      */
