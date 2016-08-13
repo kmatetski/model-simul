@@ -6,6 +6,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Slider;
 import org.matetski.gui.Controller;
+
 import java.net.URL;
 import java.util.*;
 
@@ -23,12 +24,28 @@ public class TASEPController extends Controller implements Initializable {
     @FXML
     private Slider jumpRate;
 
+    private void stateChangedAction() {
+        HashMap<String, Object> parameters = createParameters();
+        if (getParentController() != null) {
+            getParentController().stateChanged(parameters);
+        }
+    }
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         initialData.getItems().clear();
         initialData.setItems(FXCollections.observableArrayList(InitialData.values()));
         angle.getItems().clear();
         angle.setItems(FXCollections.observableArrayList(Angle.values()));
+
+        initialData.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldValue, newValue) -> stateChangedAction()
+        );
+        angle.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldValue, newValue) -> stateChangedAction()
+        );
+        particleRadius.valueProperty().addListener((listener) -> stateChangedAction());
+        jumpRate.valueProperty().addListener((listener) -> stateChangedAction());
     }
 
     @Override
@@ -63,5 +80,9 @@ public class TASEPController extends Controller implements Initializable {
         angle.setDisable(false);
         particleRadius.setDisable(false);
         jumpRate.setDisable(false);
+    }
+
+    @Override
+    public void stateChanged(HashMap<String, Object> parameters) {
     }
 }

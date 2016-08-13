@@ -48,6 +48,16 @@ public class StandardController extends Controller {
 
     }
 
+    @Override
+    public void stateChanged(HashMap<String, Object> parameters) {
+        parameters.put(ModelUtils.SIZE_PARAMETER, new Dimension((int) canvas.getWidth(),
+                (int) canvas.getHeight()));
+        model.setParameters(parameters);
+        Platform.runLater(() -> {
+            model.paint(canvas.getGraphicsContext2D());
+        });
+    }
+
     private final Timer timer;
 
     public StandardController(Model model) {

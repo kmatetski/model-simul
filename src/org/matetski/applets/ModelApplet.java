@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import org.matetski.gui.Controller;
 import org.matetski.gui.StandardController;
 import org.matetski.utils.Model;
 import org.matetski.utils.ModelSimulator;
@@ -61,7 +62,9 @@ public abstract class ModelApplet extends JApplet {
     private void loadSubcontrollers(Model model, StandardController controller) throws IOException {
         FXMLLoader controlLoader = new FXMLLoader(getClass().getResource(model.getControlGUIFileName()));
         controller.getControlPanel().getChildren().add(controlLoader.load());
-        controller.addSubcontroller(controlLoader.getController());
+        Controller subController = controlLoader.getController();
+        subController.setParentController(controller);
+        controller.addSubcontroller(subController);
     }
 
     private HashMap<String, Object> createParameters(Model model, StandardController controller) {

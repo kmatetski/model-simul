@@ -1,7 +1,9 @@
 package org.matetski.utils;
 
+import java.util.HashMap;
+
 /**
- * Contains constants related to the general model class.
+ * Contains constants and methods related to the general model class.
  *
  * @author K.Matetski
  */

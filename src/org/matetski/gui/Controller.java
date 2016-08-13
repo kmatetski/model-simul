@@ -14,6 +14,8 @@ public abstract class Controller {
      */
     private List<Controller> subcontrollers;
 
+    private Controller parentController;
+
     /**
      * Returns current values of parameters of the given controller.
      */
@@ -69,7 +71,17 @@ public abstract class Controller {
         }
     }
 
+    public void setParentController(Controller controller) {
+        parentController = controller;
+    }
+
+    public Controller getParentController() {
+        return parentController;
+    }
+
     protected abstract void makeUnactive();
 
     protected abstract void makeActive();
+
+    public abstract void stateChanged(HashMap<String, Object> parameters);
 }
