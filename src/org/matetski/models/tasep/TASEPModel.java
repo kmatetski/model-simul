@@ -24,7 +24,7 @@ public class TASEPModel extends Model {
     /**
      * The default value of a particle's diameter on the canvas.
      */
-    private final static int DEFAULT_PARTICLE_SIZE = 2;
+    private final static double DEFAULT_PARTICLE_SIZE = 2;
 
     /**
      * The default value of the angle how the interface should be drawn, e.g. flat or titled.
@@ -79,7 +79,7 @@ public class TASEPModel extends Model {
     /**
      * The diameter of a particle, how it will be drawn on the canvas.
      */
-    private int particleSize;
+    private double particleSize;
 
     /**
      * The model time, needed to draw the average value.
@@ -112,7 +112,7 @@ public class TASEPModel extends Model {
             initialData = (InitialData) parameters.get(TASEPUtils.INITIAL_DATA_PARAMETER);
             angle = (Angle) parameters.get(TASEPUtils.ANGLE_PARAMETER);
             jumpRate = (Double) parameters.get(TASEPUtils.JUMP_RATE_PARAMETER);
-            particleSize = (Integer) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER);
+            particleSize = (Double) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER);
             Dimension windowSize = (Dimension) parameters.get(ModelUtils.SIZE_PARAMETER);
 
             initializeParticles(windowSize);
@@ -135,15 +135,17 @@ public class TASEPModel extends Model {
 
     /**
      * Initializes the starting configuration of the particles.
-     * In the flat case the number of particles is takem bigger than the width of the widow,
+     * In the flat case the number of particles is taken bigger than the width of the window,
      * to make sure that the left border cannot be seen before hitting the top of the window.
      */
     private void initializeParticles(Dimension size) {
+        modelTime = 0;
+        canBeStopped = false;
         int width = (int) (size.getWidth() / particleSize);
         int height = (int) (size.getHeight() / particleSize);
         switch (initialData) {
             case FLAT:
-                int particlesNumber = width / 2 + (int) (height / (2 * jumpRate));
+                int particlesNumber = width / 2 + (int) (height / jumpRate);
                 particles = new int[particlesNumber];
                 for (int k = 0; k < particles.length; k++) {
                     particles[k] = particlesNumber - 2 * k - 1;
@@ -201,7 +203,6 @@ public class TASEPModel extends Model {
         graphicsContext.clearRect(0, 0, canvasWidth, canvasHeight);
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(AXIS_LINE_WIDTH);
-        graphicsContext.strokeLine(canvasWidth / 2, 0, canvasWidth / 2, canvasHeight);
         graphicsContext.strokeLine(0, canvasHeight - particleSize - BOTTOM_MARGIN_HEIGHTS,
                 canvasWidth, canvasHeight - particleSize - BOTTOM_MARGIN_HEIGHTS);
 
@@ -215,7 +216,7 @@ public class TASEPModel extends Model {
     private void drawTASEP(GraphicsContext graphicsContext) {
         graphicsContext.setFill(Color.BLUE);
         for (int particle : particles) {
-            graphicsContext.fillOval((int) (graphicsContext.getCanvas().getWidth() / 2 + particleSize * particle),
+            graphicsContext.fillOval((int) (graphicsContext.getCanvas().getWidth() / 2 + particleSize * particle - particleSize / 2),
                     graphicsContext.getCanvas().getHeight() - particleSize - BOTTOM_MARGIN_TASEP,
                     particleSize, particleSize);
         }
@@ -291,7 +292,7 @@ public class TASEPModel extends Model {
     private void drawFlatForFlatHeights(GraphicsContext graphicsContext) {
         double width = graphicsContext.getCanvas().getWidth();
         double height = graphicsContext.getCanvas().getHeight();
-        int trend = (int) (jumpRate * modelTime);
+        int trend = (int) (jumpRate * modelTime * particleSize / 2);
         graphicsContext.setStroke(Color.RED);
         graphicsContext.strokeLine(0, height - particleSize - BOTTOM_MARGIN_HEIGHTS - trend,
                 width, height - particleSize - BOTTOM_MARGIN_HEIGHTS - trend);
@@ -340,13 +341,14 @@ public class TASEPModel extends Model {
         double height = graphicsContext.getCanvas().getHeight();
         double horizontalShift = width / 2 + particleSize * particles[particleNumber],
                 verticalShift = height - BOTTOM_MARGIN_HEIGHTS + particleSize * (particles.length - 2 * particleNumber
-                        - particles[particleNumber] - 1);
+                        - particles[particleNumber] - 1.5);
 
-        graphicsContext.strokeLine(horizontalShift, verticalShift - particleSize, horizontalShift + particleSize, verticalShift);
+        graphicsContext.strokeLine(horizontalShift, verticalShift - particleSize,
+                horizontalShift + particleSize, verticalShift);
         if (particleNumber > 0) {
             graphicsContext.strokeLine(horizontalShift + particleSize, verticalShift,
                     width / 2 + particleSize * particles[particleNumber - 1],
-                    height - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * particleNumber + particles[particleNumber - 1] - particles.length));
+                    height - BOTTOM_MARGIN_HEIGHTS - particleSize * (2 * particleNumber + particles[particleNumber - 1] - particles.length + 0.5));
         }
     }
 

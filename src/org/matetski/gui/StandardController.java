@@ -7,35 +7,51 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.Pane;
 import org.matetski.utils.Model;
+import org.matetski.utils.ModelUtils;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
 
 public class StandardController extends Controller {
+
+    private Canvas canvas;
+
+    private Model model;
+
+    private boolean hasNotRun = true;
+
     public Canvas getCanvas() {
         return canvas;
     }
 
-    private Canvas canvas;
-
     @Override
     protected HashMap<String, Object> createParameters() {
-        return null;
-    }
-
-    public HashMap<String, Object> getParameters() {
-        return new HashMap<String, Object>();
+        HashMap<String, Object> parameters = new HashMap<>();
+        parameters.put(ModelUtils.SIZE_PARAMETER, new Dimension((int) canvas.getWidth(),
+                (int) canvas.getHeight()));
+        return parameters;
     }
 
     @Override
     public void setMyParameters(HashMap<String, Object> parameters) {
+    }
+
+    @Override
+    protected void makeUnactive() {
+
+    }
+
+    @Override
+    protected void makeActive() {
 
     }
 
     private final Timer timer;
 
     public StandardController(Model model) {
+        this.model = model;
         timer = new Timer(0, new TimerListener(model));
     }
 
@@ -62,6 +78,9 @@ public class StandardController extends Controller {
     @FXML
     private void runPauseButtonAction() {
         if (runPauseButton.getText().equals(RunPauseButtonState.RUN.toString())) {
+            if (hasNotRun) {
+                makeSubcontrollersUnactive();
+            }
             timer.setDelay(getDelay());
             timer.start();
             runPauseButton.setText(RunPauseButtonState.PAUSE.toString());
@@ -70,6 +89,9 @@ public class StandardController extends Controller {
         }
     }
 
+    /**
+     * Stops execution of the algorithm.
+     */
     private void stopSimulation() {
         timer.stop();
         runPauseButton.setText(RunPauseButtonState.RUN.toString());
@@ -77,7 +99,12 @@ public class StandardController extends Controller {
 
     @FXML
     private void resetButtonAction() {
-        //setParameters(getDefaultParameters());
+        stopSimulation();
+        model.setParameters(getParameters());
+        Platform.runLater(() -> {
+            model.paint(canvas.getGraphicsContext2D());
+        });
+        makeSubcontrollersActive();
     }
 
     @FXML
@@ -108,6 +135,11 @@ public class StandardController extends Controller {
         public void actionPerformed(java.awt.event.ActionEvent e) {
             if (model.canStop()) {
                 Platform.runLater(() -> stopSimulation());
+                makeSubcontrollersActive();
+                Platform.runLater(() -> {
+                    model.setParameters(getParameters());
+                    model.paint(canvas.getGraphicsContext2D());
+                });
             } else {
                 Platform.runLater(() -> {
                     model.iterate();

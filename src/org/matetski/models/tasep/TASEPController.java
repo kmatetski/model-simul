@@ -33,19 +33,35 @@ public class TASEPController extends Controller implements Initializable {
 
     @Override
     protected HashMap<String, Object> createParameters() {
-        return null;
-    }
-
-    @Override
-    public HashMap<String, Object> getParameters() {
-        return null;
+        HashMap<String, Object> parameters = new HashMap<>();
+        parameters.put(TASEPUtils.INITIAL_DATA_PARAMETER, initialData.getValue());
+        parameters.put(TASEPUtils.ANGLE_PARAMETER, angle.getValue());
+        parameters.put(TASEPUtils.PARTICLE_SIZE_PARAMETER, particleRadius.getValue());
+        parameters.put(TASEPUtils.JUMP_RATE_PARAMETER, jumpRate.getValue());
+        return parameters;
     }
 
     @Override
     protected void setMyParameters(HashMap<String, Object> parameters) {
         initialData.setValue((InitialData) parameters.get(TASEPUtils.INITIAL_DATA_PARAMETER));
         angle.setValue((Angle) parameters.get(TASEPUtils.ANGLE_PARAMETER));
-        particleRadius.setValue((Integer) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER));
+        particleRadius.setValue((Double) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER));
         jumpRate.setValue((Double) parameters.get(TASEPUtils.JUMP_RATE_PARAMETER));
+    }
+
+    @Override
+    protected void makeUnactive() {
+        initialData.setDisable(true);
+        angle.setDisable(true);
+        particleRadius.setDisable(true);
+        jumpRate.setDisable(true);
+    }
+
+    @Override
+    protected void makeActive() {
+        initialData.setDisable(false);
+        angle.setDisable(false);
+        particleRadius.setDisable(false);
+        jumpRate.setDisable(false);
     }
 }

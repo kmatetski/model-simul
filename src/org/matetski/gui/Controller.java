@@ -9,10 +9,19 @@ import java.util.List;
  */
 public abstract class Controller {
 
+    /**
+     * A list of subcontrollers of the controller, e.g. controllers for a particular model.
+     */
     private List<Controller> subcontrollers;
 
+    /**
+     * Returns current values of parameters of the given controller.
+     */
     protected abstract HashMap<String, Object> createParameters();
 
+    /**
+     * Returns a collection of parameters obtained from all subcontrollers.
+     */
     public HashMap<String, Object> getParameters() {
         HashMap<String, Object> parameters = new HashMap<>();
         parameters.putAll(createParameters());
@@ -41,4 +50,26 @@ public abstract class Controller {
         }
         subcontrollers.add(controller);
     }
+
+    protected void makeSubcontrollersUnactive() {
+        makeUnactive();
+        if (subcontrollers != null) {
+            for (Controller controller : subcontrollers) {
+                controller.makeUnactive();
+            }
+        }
+    }
+
+    protected void makeSubcontrollersActive() {
+        makeActive();
+        if (subcontrollers != null) {
+            for (Controller controller : subcontrollers) {
+                controller.makeActive();
+            }
+        }
+    }
+
+    protected abstract void makeUnactive();
+
+    protected abstract void makeActive();
 }
