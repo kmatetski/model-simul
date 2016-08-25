@@ -20,4 +20,17 @@ public enum InitialData {
     public String toString() {
         return name;
     }
+
+    public int getInitialPosition(int particlesNumber, int index) {
+        switch (this) {
+            case FLAT:
+                return particlesNumber - 2 * index;
+            case HALF_FLAT:
+                return -2 * index;
+            case STEP:
+                return -index;
+            default:
+                return 0;
+        }
+    }
 }

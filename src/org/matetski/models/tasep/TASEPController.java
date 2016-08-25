@@ -9,17 +9,22 @@ import org.matetski.gui.Controller;
 import java.net.URL;
 import java.util.*;
 
+import static org.matetski.models.tasep.TASEPUtils.*;
+
 public class TASEPController extends Controller {
 
+    @SuppressWarnings("CanBeFinal")
     @FXML
     private ChoiceBox<InitialData> initialData;
 
+    @SuppressWarnings("CanBeFinal")
     @FXML
     private ChoiceBox<Angle> angle;
 
     @FXML
     private Slider particleRadius;
 
+    @SuppressWarnings("CanBeFinal")
     @FXML
     private Slider jumpRate;
 
@@ -55,19 +60,19 @@ public class TASEPController extends Controller {
     @Override
     protected HashMap<String, Object> createParameters() {
         HashMap<String, Object> parameters = new HashMap<>();
-        parameters.put(TASEPUtils.INITIAL_DATA_PARAMETER, initialData.getValue());
-        parameters.put(TASEPUtils.ANGLE_PARAMETER, angle.getValue());
-        parameters.put(TASEPUtils.PARTICLE_SIZE_PARAMETER, particleRadius.getValue());
-        parameters.put(TASEPUtils.JUMP_RATE_PARAMETER, jumpRate.getValue());
+        parameters.put(INITIAL_DATA_PARAMETER, initialData.getValue());
+        parameters.put(ANGLE_PARAMETER, angle.getValue());
+        parameters.put(PARTICLE_SIZE_PARAMETER, particleRadius.getValue());
+        parameters.put(JUMP_RATE_PARAMETER, jumpRate.getValue());
         return parameters;
     }
 
     @Override
     protected void setMyParameters(HashMap<String, Object> parameters) {
-        initialData.setValue((InitialData) parameters.get(TASEPUtils.INITIAL_DATA_PARAMETER));
-        angle.setValue((Angle) parameters.get(TASEPUtils.ANGLE_PARAMETER));
-        particleRadius.setValue((Double) parameters.get(TASEPUtils.PARTICLE_SIZE_PARAMETER));
-        jumpRate.setValue((Double) parameters.get(TASEPUtils.JUMP_RATE_PARAMETER));
+        initialData.setValue((InitialData) parameters.get(INITIAL_DATA_PARAMETER));
+        angle.setValue((Angle) parameters.get(ANGLE_PARAMETER));
+        particleRadius.setValue((Double) parameters.get(PARTICLE_SIZE_PARAMETER));
+        jumpRate.setValue((Double) parameters.get(JUMP_RATE_PARAMETER));
     }
 
     @Override

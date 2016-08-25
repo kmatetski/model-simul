@@ -16,6 +16,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 
+@SuppressWarnings("unused")
 public class StandardController extends Controller {
 
     private Canvas canvas;
@@ -70,6 +71,7 @@ public class StandardController extends Controller {
         getDrawingPane().getChildren().add(canvas);
     }
 
+    @SuppressWarnings("unused")
     @FXML
     private Button runPauseButton;
 
