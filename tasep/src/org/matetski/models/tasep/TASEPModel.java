@@ -154,8 +154,8 @@ public class TASEPModel extends Model {
 
     @Override
     public void paint(GraphicsContext graphicsContext) {
-        double canvasWidth = graphicsContext.getCanvas().getWidth();
-        double canvasHeight = graphicsContext.getCanvas().getHeight();
+        double canvasWidth = graphicsContext.getCanvas().getWidth(),
+                canvasHeight = graphicsContext.getCanvas().getHeight();
 
         graphicsContext.clearRect(0, 0, canvasWidth, canvasHeight);
         graphicsContext.setStroke(Color.BLACK);

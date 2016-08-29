@@ -4,6 +4,8 @@ import javafx.scene.canvas.GraphicsContext;
 
 import java.util.HashMap;
 
+import static org.matetski.utils.ModelUtils.GUI_FILE_NAME;
+
 /**
  * An abstract class which provides a skeleton of model algorithms.
  *
@@ -11,12 +13,10 @@ import java.util.HashMap;
  */
 public abstract class Model {
 
-    private final static String GUI_FILE_NAME = "../../gui/simulator.fxml";
-
     /**
      * Initializes the model. Should be called before starting execution.
      */
-    protected abstract void initialize();
+    public abstract void initialize();
 
     /**
      * Updates parameters of the model.

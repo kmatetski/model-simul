@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ModelSimulator.iml" filepath="$PROJECT_DIR$/ModelSimulator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/tasep/tasep.iml" filepath="$PROJECT_DIR$/tasep/tasep.iml" />
     </modules>
   </component>
 </project>

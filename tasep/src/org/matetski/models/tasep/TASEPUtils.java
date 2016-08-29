@@ -17,7 +17,7 @@ final class TASEPUtils {
     /**
      * The GUI file of the control panel.
      */
-    public final static String CONTROL_GUI_FILE_NAME = "./tasep.fxml";
+    public final static String CONTROL_GUI_FILE_NAME = "/org/matetski/models/tasep/tasep.fxml";
 
     /**
      * The name displayed at the header of the window.
@@ -47,12 +47,12 @@ final class TASEPUtils {
     /**
      * The margin in pixels from the bottom on the canvas where the particles are drawn.
      */
-    public final static int BOTTOM_MARGIN_TASEP = 10;
+    public final static int BOTTOM_MARGIN_TASEP = 30;
 
     /**
      * The margin in pixels from the bottom on the canvas where the interface is drawn.
      */
-    public final static int BOTTOM_MARGIN_HEIGHTS = BOTTOM_MARGIN_TASEP * 2;
+    public final static int BOTTOM_MARGIN_HEIGHTS = BOTTOM_MARGIN_TASEP + 10;
 
     /**
      * The line width of the axis on the canvas.
