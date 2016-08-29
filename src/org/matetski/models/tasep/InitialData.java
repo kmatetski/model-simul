@@ -9,6 +9,7 @@ public enum InitialData {
     FLAT("Flat"),
     HALF_FLAT("Half flat"),
     STEP("Step");
+    //TODO: add stationary initial data
 
     private final String name;
 
