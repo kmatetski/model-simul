@@ -4,8 +4,8 @@ package org.matetski.models.tasep;
  * @author K.Matetski
  */
 public enum Angle {
-    ZERO("0%"),
-    FORTY_FIVE("45%");
+    ZERO("0%");
+    //FORTY_FIVE("45%");
 
     private final String name;
 
@@ -22,8 +22,8 @@ public enum Angle {
         switch (this) {
             case ZERO:
                 return 0;
-            case FORTY_FIVE:
-                return Math.PI / 4;
+            //case FORTY_FIVE:
+                //return Math.PI / 4;
             default:
                 return 0;
         }
