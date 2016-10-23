@@ -315,7 +315,7 @@ public class TASEPModel extends Model {
         //drawShockForStepFlatHeights(graphicsContext);
     }
 
-    /*// Draw the parabola
+    /*
     private void drawParabolaForStepFlatHeights(GraphicsContext graphicsContext) {
         double width = graphicsContext.getCanvas().getWidth(),
                 height = graphicsContext.getCanvas().getHeight();
@@ -328,7 +328,6 @@ public class TASEPModel extends Model {
         }
     }
 
-    // Draw the shock region
     private void drawShockForStepFlatHeights(GraphicsContext graphicsContext) {
         double width = graphicsContext.getCanvas().getWidth(),
                 height = graphicsContext.getCanvas().getHeight();
